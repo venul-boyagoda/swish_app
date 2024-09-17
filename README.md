@@ -1,2 +1,2 @@
 # swish-app
-App for smart basketball sleeve.
+App for smart basketball sleeve. =)
