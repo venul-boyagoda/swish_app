@@ -42,6 +42,7 @@ dependencies:
   google_mlkit_pose_detection: ^0.13.0
   image_picker: ^1.1.2
   tflite_flutter: ^0.11.0
+  percent_indicator: ^4.2.4
 
 dev_dependencies:
   flutter_test:
@@ -66,9 +67,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-assets:
-  - assets/labels.txt
-  - assets/yolov8n.tflite
+  assets:
+    - assets/balls_background.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

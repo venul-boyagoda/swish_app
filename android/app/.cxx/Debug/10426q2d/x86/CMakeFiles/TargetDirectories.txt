@@ -1,0 +1,2 @@
+C:/Users/kapio/swish_app/android/app/.cxx/Debug/10426q2d/x86/CMakeFiles/edit_cache.dir
+C:/Users/kapio/swish_app/android/app/.cxx/Debug/10426q2d/x86/CMakeFiles/rebuild_cache.dir
