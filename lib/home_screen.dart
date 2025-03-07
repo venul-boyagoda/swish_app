@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:swish_app/calibration.dart';
 import 'package:swish_app/training_in_progress.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -239,7 +240,7 @@ Widget _buildRoundedButton(String text, Color bgColor, Color textColor) {
         });
       } else if (text == 'Start Training') {
         Navigator.push(
-          context, MaterialPageRoute(builder: (context) => TrainingInProgress()));
+          context, MaterialPageRoute(builder: (context) => Calibration()));
       }
     },
     child: Container(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:swish_app/phone_setup.dart';
+import 'package:swish_app/training_in_progress.dart';
 
-class Calibration extends StatelessWidget {
+class PhoneSetup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double topPadding = MediaQuery.of(context).padding.top;
@@ -98,7 +98,7 @@ Widget _buildContent(BuildContext context) {
       child: Column(
         children: [
           const Text(
-            'Calibrate Sleeve',
+            'Setup Phone Camera',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Color(0xFF397AC5),
@@ -109,7 +109,7 @@ Widget _buildContent(BuildContext context) {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Please move your arm into the position shown in the image below and press the calibration button',
+            'Prop your phone as seen below so the net is visible.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Color(0xFF397AC5),
@@ -150,7 +150,7 @@ Widget _buildContent(BuildContext context) {
     child: GestureDetector(
       onTap: () {
          Navigator.push(
-          context, MaterialPageRoute(builder: (context) => PhoneSetup()));
+          context, MaterialPageRoute(builder: (context) => TrainingInProgress()));
       },
       child: Container(
         width: 127,

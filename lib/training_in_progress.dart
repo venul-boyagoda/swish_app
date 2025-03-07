@@ -44,7 +44,6 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
                         child: _buildTrainingCard(),
                       ),
                       const SizedBox(height: 24),
-                      _buildEndTrainingButton(),
                     ],
                   ),
                 ),
@@ -100,26 +99,28 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     );
   }
 
-  Widget _buildTrainingCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      decoration: ShapeDecoration(
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+Widget _buildTrainingCard() {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(32),
+    decoration: ShapeDecoration(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _buildTrainingStatus(),
-          const SizedBox(height: 24),
-          _buildBodyFrameAlert(),
-        ],
-      ),
-    );
-  }
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _buildTrainingStatus(),
+        const SizedBox(height: 24),
+        _buildBodyFrameAlert(),
+        const SizedBox(height: 24), // ✅ Added space before the button
+        _buildEndTrainingButton(), // ✅ Button is now inside the white frame
+      ],
+    ),
+  );
+}
 
   Widget _buildTrainingStatus() {
     return Column(
@@ -130,17 +131,17 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
             'Training in Progress...',
             style: TextStyle(
               color: Color(0xFF397AC5),
-              fontSize: 32,
+              fontSize: 28,
               fontWeight: FontWeight.w700,
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Text(
           'Time Elapsed: 0m 12s',
           style: TextStyle(
             color: Color(0xFF397AC5),
-            fontSize: 18,
+            fontSize: 16,
             fontWeight: FontWeight.w400,
           ),
         ),
@@ -158,12 +159,12 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: bodyInFrame ? Colors.white : Colors.black,
-              fontSize: 32,
+              fontSize: 24,
               fontWeight: FontWeight.w700,
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         GestureDetector(
           onTap: () {
             setState(() {
@@ -196,32 +197,29 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   }
 
 Widget _buildEndTrainingButton() {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 24),
-    child: Align(
-      alignment: Alignment.centerRight,
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context, MaterialPageRoute(builder: (context) => SessionComplete()));
-        },
-        child: Container(
-          width: 150,
-          height: 48,
-          decoration: ShapeDecoration(
-            color: const Color(0xFF397AC5),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(100),
-            ),
+  return SizedBox(
+    width: double.infinity, // ✅ Ensures full width inside the frame
+    child: GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context, MaterialPageRoute(builder: (context) => SessionComplete()));
+      },
+      child: Container(
+        width: 200, // ✅ Increased button width
+        height: 50, // ✅ Slightly taller button
+        decoration: ShapeDecoration(
+          color: const Color(0xFF397AC5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100),
           ),
-          child: const Center(
-            child: Text(
-              'End Training',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+        ),
+        child: const Center(
+          child: Text(
+            'End Training',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),

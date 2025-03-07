@@ -57,12 +57,12 @@ class _IndividualSummaryState extends State<IndividualSummary> {
               ),
             ],
           ),
-          if (_isDropdownVisible)
-            Positioned(
-              top: headerHeight,
-              left: (MediaQuery.of(context).size.width - 323) / 2,
-              child: _buildDropdownContent(),
-            ),
+if (_isDropdownVisible)
+  Positioned(
+    top: headerHeight - 8, // Reduced padding by 8 pixels
+    left: (MediaQuery.of(context).size.width - 323) / 2,
+    child: _buildDropdownContent(),
+  ),
         ],
       ),
     );
