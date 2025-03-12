@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path/path.dart' as p;
 import 'package:swish_app/home_screen.dart';
 import 'package:swish_app/individual_summary.dart';
 
@@ -102,8 +103,38 @@ static Widget tableDataRow({
   );
 }
 
+static Widget _buildMistakeRow(BuildContext context, text, Color backgroundColor) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+    decoration: BoxDecoration(color: backgroundColor),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 10,
+              fontFamily: 'Montserrat',
+              fontWeight: FontWeight.w500,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ),
+        const Icon(
+          Icons.info_outline, // ✅ Added info icon
+          size: 12,
+          color: Colors.black,
+        ),
+      ],
+    ),
+  );
+}
+
 // ✅ Updated Mistakes Table with Info Icons
-static Widget buildMistakesTable() {
+Widget buildMistakesTable(BuildContext context) {
   return Container(
     width: 314,
     decoration: ShapeDecoration(
@@ -138,40 +169,9 @@ static Widget buildMistakesTable() {
         ),
 
         // ✅ Rows with Info Icons
-        _buildMistakeRow('Tuck your elbow while shooting', Color(0xFFDBEFFF)),
-        _buildMistakeRow('Release the ball slightly earlier', Colors.white),
-        _buildMistakeRow('Hold your follow through after shooting', Color(0xFFDBEFFF)),
-      ],
-    ),
-  );
-}
-
-/// ✅ Updated Mistake Row to Include an Info Icon
-static Widget _buildMistakeRow(String text, Color backgroundColor) {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-    decoration: BoxDecoration(color: backgroundColor),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 10,
-              fontFamily: 'Montserrat',
-              fontWeight: FontWeight.w500,
-              decoration: TextDecoration.underline,
-            ),
-          ),
-        ),
-        const Icon(
-          Icons.info_outline, // ✅ Added info icon
-          size: 12,
-          color: Colors.black,
-        ),
+        _buildMistakeRow(context,'Tuck your elbow while shooting', Color(0xFFDBEFFF)),
+        _buildMistakeRow(context, 'Release the ball slightly earlier', Colors.white),
+        _buildMistakeRow(context, 'Hold your follow through after shooting', Color(0xFFDBEFFF)),
       ],
     ),
   );
@@ -302,7 +302,7 @@ Widget build(BuildContext context) {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 24),
-                        _buildSummaryFrame(),
+                        _buildSummaryFrame(context),
                         const SizedBox(height: 24),
                         Align(
                           alignment: Alignment.centerRight,
@@ -387,9 +387,9 @@ Widget build(BuildContext context) {
   );
 }
 
-  static Widget _buildSummaryFrame() {
+ Widget _buildSummaryFrame(BuildContext context) {
   return Container(
-    padding: const EdgeInsets.all(24),
+    padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24), // ✅ Equal top & bottom padding
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(24),
@@ -404,60 +404,57 @@ Widget build(BuildContext context) {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildShotScore(),
-        
-        const SizedBox(height: 24), // ✅ Adds 24 pixels of space
-        _buildShotsSection(),
-
-        const SizedBox(height: 24), // ✅ Keeps spacing consistent
-
-        buildMistakesTable(),
+        _buildShotScore(context), // ✅ No extra frame around this
 
         const SizedBox(height: 24),
+        _buildShotsSection(context),
 
+        const SizedBox(height: 24),
+        buildMistakesTable(context),
+
+        const SizedBox(height: 24),
         buildImprovementTable(),
-          ],
-        ),
+      ],
+    ),
   );
 }
 
 
-static Widget _buildShotScore() {
+Widget _buildShotScore(BuildContext context) {
   const double shotScore = 84;
+  Color progressColor = shotScore > 80
+      ? const Color(0xFF41AC20)
+      : (shotScore >= 50 ? const Color(0xFFFFC107) : const Color(0xFFC92121));
 
-  // Determine progress bar color based on shotScore
-  Color progressColor;
-  if (shotScore > 80) {
-    progressColor = const Color(0xFF41AC20); // Green
-  } else if (shotScore >= 50) {
-    progressColor = const Color(0xFFFFC107); // Yellow
-  } else {
-    progressColor = const Color(0xFFC92121); // Red
-  }
-
-  return Column(
+  return Column( // ✅ Remove extra wrapping Container
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      // ✅ Row containing the bold heading and the blue info icon
-      Row(
-        children: [
-          const Text(
-            'Overall Session Score:',
-            style: TextStyle(
-              color: Color(0xFF397AC5),
-              fontSize: 24,
-              fontWeight: FontWeight.w700, // ✅ Bolded text
+      // Title + Info Button
+      GestureDetector(
+        onTap: () => _showScorePopup(context), // ✅ Tap to open popup
+        child: Row(
+          children: [
+            const Text(
+              'Overall Session Score:',
+              style: TextStyle(
+                color: Color(0xFF397AC5),
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          const SizedBox(width: 8), // ✅ Space between text and icon
-          const Icon(
-            Icons.info_outline, // ✅ Blue information icon
-            size: 24,
-            color: Color(0xFF397AC5),
-          ),
-        ],
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.info_outline,
+              size: 24,
+              color: Color(0xFF397AC5),
+            ),
+          ],
+        ),
       ),
+
       const SizedBox(height: 24),
+
+      // Circular Progress Indicator
       Center(
         child: Stack(
           alignment: Alignment.center,
@@ -469,14 +466,13 @@ static Widget _buildShotScore() {
                 value: shotScore / 100,
                 strokeWidth: 24,
                 backgroundColor: Colors.grey.shade200,
-                valueColor: AlwaysStoppedAnimation(progressColor), // ✅ Dynamic color
+                valueColor: AlwaysStoppedAnimation(progressColor),
               ),
             ),
-            // ✅ Dynamically set text based on shotScore
             Text(
-              '${shotScore.toStringAsFixed(0)}%', // Converts double to int-like string
+              '${shotScore.toStringAsFixed(0)}%',
               style: const TextStyle(
-                color: Colors.black, // ✅ Ensures text stays black
+                color: Colors.black,
                 fontSize: 48,
                 fontWeight: FontWeight.w400,
               ),
@@ -484,12 +480,125 @@ static Widget _buildShotScore() {
           ],
         ),
       ),
-      const SizedBox(height: 24),
     ],
   );
 }
 
-static Widget _buildShotsSection() {
+
+void _showScorePopup(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: Colors.white, // ✅ Set background to white
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      contentPadding: const EdgeInsets.all(16),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Overall Session Score',
+            style: TextStyle(
+              color: Color(0xFF397AC5),
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'This number is calculated using a weighted average of your session accuracy, '
+            'the number of mistakes made, and your consistency. See your scores below:',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Sections for Accuracy, Form, and Consistency (Form is centered)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround, // ✅ Equal spacing
+            children: [
+              _buildScoreColumn('Accuracy', 88), // Example scores
+              _buildScoreColumn('Form', 65), // Centered
+              _buildScoreColumn('Consistency', 42),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF397AC5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'Got it!',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Builds a column with a title and a score tile underneath
+Widget _buildScoreColumn(String title, int score) {
+  return Column(
+    children: [
+      Text(
+        title,
+        style: const TextStyle(
+          color: Color(0xFF397AC5),
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          decoration: TextDecoration.underline,
+        ),
+      ),
+      const SizedBox(height: 8),
+      _buildScoreTile(score),
+    ],
+  );
+}
+
+/// Builds a square tile with a score and dynamically changes color
+Widget _buildScoreTile(int score) {
+  Color tileColor;
+  if (score >= 80) {
+    tileColor = Colors.green;
+  } else if (score >= 50) {
+    tileColor = const Color.fromARGB(255, 255, 231, 15);
+  } else {
+    tileColor = Colors.red;
+  }
+
+  return Container(
+    width: 50,
+    height: 50,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: tileColor,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Text(
+      '$score',
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+  );
+}
+
+
+
+static Widget _buildShotsSection(BuildContext context) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -577,11 +686,11 @@ static Widget _buildShotsSection() {
                   MaterialPageRoute(builder: (context) => IndividualSummary()),
                 );
               },
-              child: _buildGridItem(index, color),
+              child: _buildGridItem(context, index, color),
             );
           }
 
-          return _buildGridItem(index, color);
+          return _buildGridItem(context, index, color);
         },
       ),
     ],
@@ -631,34 +740,58 @@ static Widget _buildShotDetail(String label, String value, Color labelColor) {
 
 
 // Updated _buildGridItem to take a single color instead of a list
-static Widget _buildGridItem(int index, Color color) {
-  return Container(
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(12),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.25), // ✅ Drop shadow
-          blurRadius: 4,
-          offset: const Offset(0, 4),
-          spreadRadius: 0,
+static Widget _buildGridItem(BuildContext context, int index, Color color) {
+  return GestureDetector(
+    onTap: () {
+      // Navigate to IndividualSummary on tap
+      print("Tapped on Shot ${index + 1}"); // Debugging
+    },
+    child: MouseRegion(
+      cursor: SystemMouseCursors.click, // ✅ Show hand cursor on hover
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150), // ✅ Smooth animation
+        curve: Curves.easeInOut,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.black.withOpacity(0.3), // ✅ Border for contrast
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3), // ✅ Stronger shadow
+              blurRadius: 5,
+              offset: const Offset(0, 3),
+              spreadRadius: 1,
+            ),
+          ],
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white.withOpacity(0.8), // ✅ Gradient effect
+              color.withOpacity(0.9),
+            ],
+          ),
         ),
-      ],
-      gradient: LinearGradient(
-        begin: Alignment.topRight,  // ✅ White at the top-right
-        end: Alignment.center,  // ✅ Color at the bottom-left
-        colors: [
-          Colors.white, // ✅ Gradient starts as white
-          color,        // ✅ Gradient fades into the original color
-        ],
-      ),
-    ),
-    child: Center(
-      child: Text(
-        '${index + 1}',
-        style: const TextStyle(
-          color: Color(0xFF111111),
-          fontSize: 16,
-          fontWeight: FontWeight.w400,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12), // ✅ Ripple effect
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => IndividualSummary()),
+            );
+          },
+          child: Center(
+            child: Text(
+              '${index + 1}',
+              style: const TextStyle(
+                color: Color(0xFF111111),
+                fontSize: 16,
+                fontWeight: FontWeight.bold, // ✅ Stronger font weight
+              ),
+            ),
+          ),
         ),
       ),
     ),

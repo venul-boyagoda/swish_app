@@ -60,45 +60,50 @@ class SessionComplete extends StatelessWidget {
   }
 
   // Header Content (Position Unchanged)
-  Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      height: 64, // Keeping it at 64 so content stays unchanged
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            height: 36,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x3F000000),
-                  blurRadius: 4,
-                  offset: Offset(0, 4),
-                )
-              ],
+  // Header Content (Fixed Width)
+Widget _buildHeader() {
+  return Container(
+    width: double.infinity,
+    height: 64,
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    decoration: const BoxDecoration(color: Color(0xFF397AC5)),
+    child: Center(
+      child: Container(
+        width: 323, // ✅ Set width to match GeneralSummaryScreen
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: ShapeDecoration(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(width: 1, color: Color(0x1EC8C8C8)),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          shadows: const [
+            BoxShadow(
+              color: Color(0x3F000000),
+              blurRadius: 4,
+              offset: Offset(0, 4),
+              spreadRadius: 0,
             ),
-            child: const Center(
-              child: Text(
-                'Thursday, Jan 23 2025',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xFF397AC5),
-                  fontSize: 20,
-                  fontFamily: 'Open Sans',
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+          ],
+        ),
+        child: const Center(
+          child: Text(
+            'Thursday, Jan 23 2025',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF397AC5),
+              fontSize: 20,
+              fontFamily: 'Open Sans',
+              fontWeight: FontWeight.w700,
+              height: 1.4,
             ),
           ),
-        ],
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // Session Complete Card
   Widget _buildSessionCard(BuildContext context) {

@@ -1,6 +1,9 @@
 import 'package:flutter/services.dart'; // Required for SystemChrome
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
 import 'package:swish_app/session_complete.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class TrainingInProgress extends StatefulWidget {
   @override
@@ -8,7 +11,56 @@ class TrainingInProgress extends StatefulWidget {
 }
 
 class _TrainingInProgressState extends State<TrainingInProgress> {
-  bool bodyInFrame = false; // Condition to toggle frame detection
+  CameraController? _cameraController;
+  List<CameraDescription>? cameras;
+  bool _isRecording = false;
+  String? _videoPath;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeCamera();
+  }
+
+  Future<void> _initializeCamera() async {
+    cameras = await availableCameras();
+    _cameraController = CameraController(
+      cameras!.firstWhere((camera) => camera.lensDirection == CameraLensDirection.front),
+      ResolutionPreset.medium,
+    );
+    await _cameraController!.initialize();
+    if (mounted) {
+      setState(() {});
+    }
+    _startRecording();
+  }
+
+  Future<void> _startRecording() async {
+    if (_cameraController != null && _cameraController!.value.isInitialized) {
+      final directory = await getApplicationDocumentsDirectory();
+      _videoPath = '${directory.path}/training_video.mp4';
+      await _cameraController!.startVideoRecording();
+      setState(() {
+        _isRecording = true;
+      });
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    if (_cameraController != null && _cameraController!.value.isRecordingVideo) {
+      final videoFile = await _cameraController!.stopVideoRecording();
+      setState(() {
+        _isRecording = false;
+        _videoPath = videoFile.path;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,14 +110,14 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   Widget _buildAppBar() {
     return Container(
       width: double.infinity,
-      height: MediaQuery.of(context).padding.top + 64, // Extend to the very top
+      height: MediaQuery.of(context).padding.top + 64,
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top, // Align content properly
+        top: MediaQuery.of(context).padding.top,
         left: 12,
         right: 12,
-        bottom: 8, // Keep the bottom padding
+        bottom: 8,
       ),
-      decoration: const BoxDecoration(color: Color(0xFF397AC5)), // Blue background
+      decoration: const BoxDecoration(color: Color(0xFF397AC5)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -99,28 +151,28 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     );
   }
 
-Widget _buildTrainingCard() {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(32),
-    decoration: ShapeDecoration(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+  Widget _buildTrainingCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: ShapeDecoration(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
       ),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        _buildTrainingStatus(),
-        const SizedBox(height: 24),
-        _buildBodyFrameAlert(),
-        const SizedBox(height: 24), // ✅ Added space before the button
-        _buildEndTrainingButton(), // ✅ Button is now inside the white frame
-      ],
-    ),
-  );
-}
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _buildTrainingStatus(),
+          const SizedBox(height: 24),
+          _buildCameraView(),
+          const SizedBox(height: 24),
+          _buildEndTrainingButton(),
+        ],
+      ),
+    );
+  }
 
   Widget _buildTrainingStatus() {
     return Column(
@@ -149,83 +201,49 @@ Widget _buildTrainingCard() {
     );
   }
 
-  Widget _buildBodyFrameAlert() {
-    return Column(
-      children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            bodyInFrame ? 'BODY IN FRAME' : 'BODY NOT IN FRAME',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: bodyInFrame ? Colors.white : Colors.black,
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              bodyInFrame = !bodyInFrame;
-            });
-          },
-          child: Transform(
-            alignment: Alignment.center,
-            transform: Matrix4.identity()..rotateZ(3.14),
-            child: Container(
-              width: 299,
-              height: 475,
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: bodyInFrame ? Color(0xFFDBFFD0) : Color(0xFFFF6060),
-                  width: 12,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                image: const DecorationImage(
-                  image: NetworkImage("https://placehold.co/299x648"),
-                  fit: BoxFit.cover,
-                ),
-              ),
-              child: const Center(child: FlutterLogo()),
-            ),
-          ),
-        ),
-      ],
+  Widget _buildCameraView() {
+    return Container(
+      width: 299,
+      height: 475,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: _cameraController != null && _cameraController!.value.isInitialized
+          ? CameraPreview(_cameraController!)
+          : Center(child: CircularProgressIndicator()),
     );
   }
 
-Widget _buildEndTrainingButton() {
-  return SizedBox(
-    width: double.infinity, // ✅ Ensures full width inside the frame
-    child: GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context, MaterialPageRoute(builder: (context) => SessionComplete()));
-      },
-      child: Container(
-        width: 200, // ✅ Increased button width
-        height: 50, // ✅ Slightly taller button
-        decoration: ShapeDecoration(
-          color: const Color(0xFF397AC5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(100),
+  Widget _buildEndTrainingButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: GestureDetector(
+        onTap: () async {
+          await _stopRecording();
+          Navigator.push(
+            context, MaterialPageRoute(builder: (context) => SessionComplete()));
+        },
+        child: Container(
+          width: 200,
+          height: 50,
+          decoration: ShapeDecoration(
+            color: const Color(0xFF397AC5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(100),
+            ),
           ),
-        ),
-        child: const Center(
-          child: Text(
-            'End Training',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+          child: const Center(
+            child: Text(
+              'End Training',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
-}
-

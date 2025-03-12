@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
 import 'package:swish_app/general_summary.dart';
 
 class IndividualSummary extends StatefulWidget {
@@ -52,7 +53,7 @@ class _IndividualSummaryState extends State<IndividualSummary> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
-                  child: _buildMainContent(),
+                  child: _buildMainContent(context),
                 ),
               ),
             ],
@@ -139,13 +140,64 @@ if (_isDropdownVisible)
   }
 }
 
+Widget _buildPreviousButton(BuildContext context) {
+  return Align(
+    alignment: Alignment.centerLeft, // ✅ Left align the button
+    child: GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => GeneralSummaryScreen()), // ✅ Replace with your actual screen
+        );
+      },
+      child: Container(
+        width: 109, // ✅ Fixed width of 109 pixels
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12), // Adjust padding if needed
+        decoration: ShapeDecoration(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(
+              width: 2, // ✅ Doubled the thickness from 1 to 2
+              color: Color(0xFF397AC5),
+            ),
+            borderRadius: BorderRadius.circular(100),
+          ),
+          shadows: const [
+            BoxShadow(
+              color: Color(0x3F000000),
+              blurRadius: 4,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            'Previous',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF397AC5),
+              fontSize: 14,
+              fontFamily: 'Open Sans',
+              fontWeight: FontWeight.w400,
+              height: 1.43,
+              letterSpacing: 0.10,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
-  Widget _buildMainContent() {
+
+  Widget _buildMainContent(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildWhiteCard(),
         const SizedBox(height: 24),
+        _buildPreviousButton(context),
       ],
     );
   }
@@ -272,7 +324,7 @@ if (_isDropdownVisible)
       {Color backgroundColor = Colors.white, bool isHeader = false}) {
     final textStyle = TextStyle(
       color: Colors.black,
-      fontSize: 10,
+      fontSize: 12,
       fontFamily: 'Montserrat',
       fontWeight: isHeader ? FontWeight.w700 : FontWeight.w500,
       decoration: isHeader ? TextDecoration.none : TextDecoration.underline,
