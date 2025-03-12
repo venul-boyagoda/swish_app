@@ -21,10 +21,9 @@ class Calibration extends StatelessWidget {
           children: [
             _buildTopBar(topPadding),
             Expanded(
-              child: Stack(
-                children: [
-                  _buildContent(context),
-                ],
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: _buildContent(context),
               ),
             ),
           ],
@@ -32,9 +31,7 @@ class Calibration extends StatelessWidget {
       ),
     );
   }
-}
 
-  /// Covers the status bar + header with the same blue color.
   Widget _buildTopBar(double topPadding) {
     return Container(
       width: double.infinity,
@@ -62,7 +59,6 @@ class Calibration extends StatelessWidget {
     );
   }
 
-  /// Builds the icons in the header (left: menu, right: profile)
   Widget _buildIconButton(IconData icon) {
     return IconButton(
       icon: Icon(icon, color: Colors.white, size: 28),
@@ -70,26 +66,20 @@ class Calibration extends StatelessWidget {
     );
   }
 
-Widget _buildContent(BuildContext context) {
-  return Positioned(
-    left: 24,
-    top: 24, // Adjusted top margin after adding top bar fix
-    right: 24, // Ensures proper layout on both sides
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch, // Allows proper alignment of children
+  Widget _buildContent(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildCalibrationCard(),
         const SizedBox(height: 24),
-        _buildContinueButton(context), // Now correctly aligned to the right
+        _buildContinueButton(context),
       ],
-    ),
-  );
-}
-
+    );
+  }
 
   Widget _buildCalibrationCard() {
     return Container(
-      width: 363,
+      width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -124,56 +114,52 @@ Widget _buildContent(BuildContext context) {
     );
   }
 
-  /// Reduced height by 34 pixels.
   Widget _buildCalibrationImage() {
     return Transform(
       alignment: Alignment.center,
       transform: Matrix4.rotationZ(3.14),
       child: Container(
         width: 299,
-        height: 474, // 508 - 34 pixels
+        height: 474,
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: NetworkImage("https://placehold.co/299x508"),
             fit: BoxFit.cover,
           ),
         ),
-        child: const FlutterLogo(),
       ),
     );
   }
 
-  /// Aligned to the right and navigates to the next screen.
   Widget _buildContinueButton(BuildContext context) {
-  return Align(
-    alignment: Alignment.centerRight, // Ensures button is aligned to the right
-    child: GestureDetector(
-      onTap: () {
-         Navigator.push(
-          context, MaterialPageRoute(builder: (context) => PhoneSetup()));
-      },
-      child: Container(
-        width: 127,
-        height: 40,
-        margin: const EdgeInsets.only(right: 24), // Ensures spacing from the right edge
-        decoration: BoxDecoration(
-          color: const Color(0xFF397AC5),
-          borderRadius: BorderRadius.circular(100),
-        ),
-        alignment: Alignment.center,
-        child: const Text(
-          'Continue',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontFamily: 'Roboto',
-            fontWeight: FontWeight.w500,
+    return Align(
+      alignment: Alignment.centerRight,
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context, MaterialPageRoute(builder: (context) => PhoneSetup()),
+          );
+        },
+        child: Container(
+          width: 127,
+          height: 40,
+          margin: const EdgeInsets.only(right: 24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF397AC5),
+            borderRadius: BorderRadius.circular(100),
+          ),
+          alignment: Alignment.center,
+          child: const Text(
+            'Continue',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontFamily: 'Roboto',
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
-
-
-

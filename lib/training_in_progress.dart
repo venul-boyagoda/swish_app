@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:swish_app/session_complete.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'dart:async';
 
 class TrainingInProgress extends StatefulWidget {
   @override
@@ -15,11 +16,14 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   List<CameraDescription>? cameras;
   bool _isRecording = false;
   String? _videoPath;
+  Timer? _timer;
+  int _elapsedSeconds = 0;
 
   @override
   void initState() {
     super.initState();
     _initializeCamera();
+    _startTimer();
   }
 
   Future<void> _initializeCamera() async {
@@ -33,6 +37,20 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
       setState(() {});
     }
     _startRecording();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        _elapsedSeconds++;
+      });
+    });
+  }
+
+  String _formatTime(int seconds) {
+    int minutes = seconds ~/ 60;
+    int secs = seconds % 60;
+    return '${minutes}m ${secs}s';
   }
 
   Future<void> _startRecording() async {
@@ -49,6 +67,7 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   Future<void> _stopRecording() async {
     if (_cameraController != null && _cameraController!.value.isRecordingVideo) {
       final videoFile = await _cameraController!.stopVideoRecording();
+      _timer?.cancel();
       setState(() {
         _isRecording = false;
         _videoPath = videoFile.path;
@@ -59,6 +78,7 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   @override
   void dispose() {
     _cameraController?.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -190,7 +210,7 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Time Elapsed: 0m 12s',
+          'Time Elapsed: ${_formatTime(_elapsedSeconds)}',
           style: TextStyle(
             color: Color(0xFF397AC5),
             fontSize: 16,
