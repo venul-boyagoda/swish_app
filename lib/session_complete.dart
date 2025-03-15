@@ -143,7 +143,7 @@ Widget _buildHeader() {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Color(0xFF397AC5),
-              fontSize: 16flutter runApp,
+              fontSize: 20,
               fontFamily: 'Open Sans',
               fontWeight: FontWeight.w400,
               height: 1,
