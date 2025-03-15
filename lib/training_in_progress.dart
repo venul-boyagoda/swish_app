@@ -5,6 +5,7 @@ import 'package:swish_app/session_complete.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:async';
+import 'package:swish_app/services/phone_service.dart';
 
 class TrainingInProgress extends StatefulWidget {
   @override
@@ -29,7 +30,8 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   Future<void> _initializeCamera() async {
     cameras = await availableCameras();
     _cameraController = CameraController(
-      cameras!.firstWhere((camera) => camera.lensDirection == CameraLensDirection.front),
+      cameras!.firstWhere((camera) =>
+      camera.lensDirection == CameraLensDirection.front),
       ResolutionPreset.medium,
     );
     await _cameraController!.initialize();
@@ -56,7 +58,10 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   Future<void> _startRecording() async {
     if (_cameraController != null && _cameraController!.value.isInitialized) {
       final directory = await getApplicationDocumentsDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final timestamp = DateTime
+          .now()
+          .millisecondsSinceEpoch
+          .toString();
       _videoPath = '${directory.path}/training_video_$timestamp.mp4';
       await _cameraController!.startVideoRecording();
       setState(() {
@@ -66,24 +71,28 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   }
 
   Future<String?> _stopRecording() async {
-    if (_cameraController != null && _cameraController!.value.isRecordingVideo) {
+    if (_cameraController != null &&
+        _cameraController!.value.isRecordingVideo) {
       final XFile videoFile = await _cameraController!.stopVideoRecording();
       _timer?.cancel();
-      
+
       // Save the video file permanently
       final directory = await getApplicationDocumentsDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final timestamp = DateTime
+          .now()
+          .millisecondsSinceEpoch
+          .toString();
       final savedVideoPath = '${directory.path}/saved_training_$timestamp.mp4';
-      
+
       // Copy the temporary file to permanent storage
       final File tempFile = File(videoFile.path);
       await tempFile.copy(savedVideoPath);
-      
+
       setState(() {
         _isRecording = false;
         _videoPath = savedVideoPath;
       });
-      
+
       print('Video saved to: $_videoPath');
       return savedVideoPath;
     }
@@ -101,7 +110,8 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   Widget build(BuildContext context) {
     // Make the status bar overlay match the header color
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent, // Make status bar background transparent
+      statusBarColor: Colors.transparent,
+      // Make status bar background transparent
       statusBarIconBrightness: Brightness.light, // Make status bar icons white
     ));
 
@@ -145,9 +155,15 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   Widget _buildAppBar() {
     return Container(
       width: double.infinity,
-      height: MediaQuery.of(context).padding.top + 64,
+      height: MediaQuery
+          .of(context)
+          .padding
+          .top + 64,
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top,
+        top: MediaQuery
+            .of(context)
+            .padding
+            .top,
         left: 12,
         right: 12,
         bottom: 8,
@@ -254,15 +270,28 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
       width: double.infinity,
       child: GestureDetector(
         onTap: () async {
+          // Stop the recording and get the video path
           final String? savedVideoPath = await _stopRecording();
-          
-          // Pass the video path to the SessionComplete screen
-          Navigator.push(
-            context, 
-            MaterialPageRoute(
-              builder: (context) => SessionComplete(videoPath: savedVideoPath),
-            ),
-          );
+
+          if (savedVideoPath != null) {
+            // Perform the video upload asynchronously (does not block navigation)
+            try {
+              await uploadVideo(File(
+                  savedVideoPath)); // Assuming `uploadVideo` is non-blocking
+            } catch (e) {
+              // Handle any errors that might occur during the upload process
+              print('Error uploading video: $e');
+            }
+
+            // Navigate to the next screen
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    SessionComplete(videoPath: savedVideoPath),
+              ),
+            );
+          }
         },
         child: Container(
           width: 200,
@@ -288,3 +317,46 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     );
   }
 }
+
+//   Widget _buildEndTrainingButton() {
+//     return SizedBox(
+//       width: double.infinity,
+//       child: GestureDetector(
+//         onTap: () async {
+//           final String? savedVideoPath = await _stopRecording();
+//           if (savedVideoPath != null) {
+//             await uploadVideo(File(_videoPath!));
+//             // Pass the video path to the SessionComplete screen
+//             Navigator.push(
+//               context,
+//               MaterialPageRoute(
+//                 builder: (context) =>
+//                     SessionComplete(videoPath: savedVideoPath),
+//               ),
+//             );
+//           }
+//         },
+//         child: Container(
+//           width: 200,
+//           height: 50,
+//           decoration: ShapeDecoration(
+//             color: const Color(0xFF397AC5),
+//             shape: RoundedRectangleBorder(
+//               borderRadius: BorderRadius.circular(100),
+//             ),
+//           ),
+//           child: const Center(
+//             child: Text(
+//               'End Training',
+//               style: TextStyle(
+//                 color: Colors.white,
+//                 fontSize: 16,
+//                 fontWeight: FontWeight.w500,
+//               ),
+//             ),
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
