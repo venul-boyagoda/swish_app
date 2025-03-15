@@ -118,7 +118,7 @@ Widget _buildSelectionCard() {
         ),
         const SizedBox(height: 24),
         _buildQuestion(
-          'How many shots are you going to take in this session?',
+          'Please select how many shots you will be taking during the training session',
           _buildShotSelection(),
         ),
       ],

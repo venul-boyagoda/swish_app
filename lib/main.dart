@@ -7,6 +7,7 @@ import 'package:swish_app/general_summary.dart';
 import 'package:swish_app/home_screen.dart';
 import 'package:swish_app/individual_summary.dart';
 import 'package:swish_app/session_complete.dart';
+import 'package:swish_app/symposium_summary_screen.dart';
 import 'package:swish_app/training_in_progress.dart';
 import 'vision_detector_views/pose_detector_view.dart';
 

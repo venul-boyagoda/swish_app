@@ -56,7 +56,8 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   Future<void> _startRecording() async {
     if (_cameraController != null && _cameraController!.value.isInitialized) {
       final directory = await getApplicationDocumentsDirectory();
-      _videoPath = '${directory.path}/training_video.mp4';
+      final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      _videoPath = '${directory.path}/training_video_$timestamp.mp4';
       await _cameraController!.startVideoRecording();
       setState(() {
         _isRecording = true;
@@ -64,15 +65,29 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     }
   }
 
-  Future<void> _stopRecording() async {
+  Future<String?> _stopRecording() async {
     if (_cameraController != null && _cameraController!.value.isRecordingVideo) {
-      final videoFile = await _cameraController!.stopVideoRecording();
+      final XFile videoFile = await _cameraController!.stopVideoRecording();
       _timer?.cancel();
+      
+      // Save the video file permanently
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final savedVideoPath = '${directory.path}/saved_training_$timestamp.mp4';
+      
+      // Copy the temporary file to permanent storage
+      final File tempFile = File(videoFile.path);
+      await tempFile.copy(savedVideoPath);
+      
       setState(() {
         _isRecording = false;
-        _videoPath = videoFile.path;
+        _videoPath = savedVideoPath;
       });
+      
+      print('Video saved to: $_videoPath');
+      return savedVideoPath;
     }
+    return null;
   }
 
   @override
@@ -239,9 +254,15 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
       width: double.infinity,
       child: GestureDetector(
         onTap: () async {
-          await _stopRecording();
+          final String? savedVideoPath = await _stopRecording();
+          
+          // Pass the video path to the SessionComplete screen
           Navigator.push(
-            context, MaterialPageRoute(builder: (context) => SessionComplete()));
+            context, 
+            MaterialPageRoute(
+              builder: (context) => SessionComplete(videoPath: savedVideoPath),
+            ),
+          );
         },
         child: Container(
           width: 200,

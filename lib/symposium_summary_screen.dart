@@ -3,10 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:swish_app/home_screen.dart';
 import 'package:swish_app/individual_summary.dart';
+import 'package:video_player/video_player.dart';
+import 'dart:io';
 
+class SymposiumSummaryScreen extends StatelessWidget {
+  final String? videoPath;
 
-class GeneralSummaryScreen extends StatelessWidget {
-  const GeneralSummaryScreen({Key? key}) : super(key: key);
+const SymposiumSummaryScreen({Key? key, this.videoPath}) : super(key: key);
 
   // Helper widget for table header rows
   static Widget tableHeaderRow({
@@ -177,82 +180,6 @@ Widget buildMistakesTable(BuildContext context) {
   );
 }
 
-// ✅ Updated Improvement Table with Info Icons
-static Widget buildImprovementTable() {
-  return Container(
-    width: 314,
-    decoration: ShapeDecoration(
-      color: Colors.black,
-      shape: RoundedRectangleBorder(
-        side: const BorderSide(
-          width: 1,
-          strokeAlign: BorderSide.strokeAlignOutside,
-          color: Color(0xFFDBEFFF),
-        ),
-      ),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Header Section
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(color: Colors.white),
-          child: const Text(
-            'Improvements from past sessions',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF397AC5),
-              fontSize: 13,
-              fontFamily: 'Montserrat',
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-
-        // ✅ Rows with Info Icons
-        _buildImprovementRow('Wrist flick is good', Color(0xFFDBEFFF)),
-        _buildImprovementRow('Arm extension is more consistent', Colors.white),
-        _buildImprovementRow('Knee bend is good', Color(0xFFDBEFFF)),
-      ],
-    ),
-  );
-}
-
-/// ✅ Updated Improvement Row to Include an Info Icon
-static Widget _buildImprovementRow(String text, Color backgroundColor) {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-    decoration: BoxDecoration(color: backgroundColor),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 10,
-              fontFamily: 'Montserrat',
-              fontWeight: FontWeight.w500,
-              decoration: TextDecoration.underline,
-            ),
-          ),
-        ),
-        const Icon(
-          Icons.info_outline, // ✅ Added info icon
-          size: 12,
-          color: Colors.black,
-        ),
-      ],
-    ),
-  );
-}
-
-
 
 @override
 Widget build(BuildContext context) {
@@ -305,31 +232,37 @@ Widget build(BuildContext context) {
                         _buildSummaryFrame(context),
                         const SizedBox(height: 24),
                         Align(
-                          alignment: Alignment.centerRight,
-                          child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF397AC5),
-                        shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(100),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                        elevation: 4,
-                        ),
-                        onPressed: () {
-                        Navigator.push(
-                            context, MaterialPageRoute(builder: (context) => HomeScreen()));
-                        },
-                        child: const Text(
-                        'Finish',
-                        style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontFamily: 'Open Sans',
-                        fontWeight: FontWeight.w400,
-                        ),
-                        ),
-                        ),
-                        ),
+  alignment: Alignment.centerRight,
+  child: SizedBox(
+    width: 127, // ✅ Fixed width of 127 pixels
+    height: 40, // Optional: Set height for consistency
+    child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF397AC5),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(100),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+        elevation: 4,
+      ),
+      onPressed: () {
+        Navigator.push(
+          context, 
+          MaterialPageRoute(builder: (context) => HomeScreen()),
+        );
+      },
+      child: const Text(
+        'Finish',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontFamily: 'Open Sans',
+          fontWeight: FontWeight.w400,
+        ),
+      ),
+    ),
+  ),
+),
                       ],
                     ),
                   ),
@@ -387,10 +320,10 @@ Widget build(BuildContext context) {
   );
 }
 
- Widget _buildSummaryFrame(BuildContext context) {
-  return Center( // ✅ Ensures the entire frame is centered
+Widget _buildSummaryFrame(BuildContext context) {
+  return Center(
     child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24), // ✅ Equal top & bottom padding
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -403,22 +336,13 @@ Widget build(BuildContext context) {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center, // ✅ Ensures center alignment
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _buildShotScore(context), // ✅ No extra frame around this
-
+          _buildShotScore(context), // ✅ Progress bar section
           const SizedBox(height: 24),
-          _buildShotsSection(context),
-
-          const SizedBox(height: 24),
-
-          /// ✅ Centering "Biggest things to focus on" Table
-          Center(child: buildMistakesTable(context)),
-
-          const SizedBox(height: 24),
-
-          /// ✅ Centering "Improvements from past sessions" Table
-          Center(child: buildImprovementTable()),
+          _buildVideoReplaySection(context), // ✅ Add the video replay section here
+          const SizedBox(height: 12),
+          Center(child: buildMistakesTable(context)), // ✅ Mistakes table
         ],
       ),
     ),
@@ -488,6 +412,25 @@ Widget _buildShotScore(BuildContext context) {
     ],
   );
 }
+
+Widget _buildVideoReplaySection(BuildContext context) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text(
+        'Video Replay',
+        style: TextStyle(
+          color: Color(0xFF397AC5),
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      const SizedBox(height: 64), // ✅ Increased spacing between "Video Replay" and the video
+      _VideoPlayerWidget(videoPath: videoPath),
+    ],
+  );
+}
+
 
 
 void _showScorePopup(BuildContext context) {
@@ -600,196 +543,134 @@ Widget _buildScoreTile(int score) {
     ),
   );
 }
-
-
-
-static Widget _buildShotsSection(BuildContext context) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      // Session shot text with bold formatting
-      const Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(
-              text: 'In this session you made ',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            TextSpan(
-              text: '12/15',  // ✅ Bold 12/15
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.w700, // Bold
-              ),
-            ),
-            TextSpan(
-              text: ' shots. ',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            TextSpan(
-              text: 'Click on any number to view a shot in more detail',  // ✅ Bold full sentence
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.w700, // Bold
-              ),
-            ),
-          ],
-        ),
-      ),
-
-      const SizedBox(height: 8), // ✅ Adds 8 pixels of space before the grid
-
-      // Shot Grid
-      _buildBestWorstShotSection(),
-      GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        padding: EdgeInsets.zero, // Ensures no extra space inside the grid
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 5,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-        ),
-        itemCount: 15,
-        itemBuilder: (context, index) {
-          final colorMap = {
-            1: const Color(0xFFDBFFD0),
-            2: const Color(0xFF9BDE87),
-            3: const Color(0xFF9BDE87),
-            4: const Color(0xFF9BDE87),
-            5: const Color(0xFF9BDE87),
-            6: const Color(0xFF9BDE87),
-            7: const Color(0xFF9BDE87),
-            8: const Color(0xFFC92121),
-            9: const Color(0xFFDC7272),
-            10: const Color(0xFF41AC20),
-            11: const Color(0xFF41AC20),
-            12: const Color(0xFF9BDE87),
-            13: const Color(0xFF41AC20),
-            14: const Color(0xFFFFD0D0),
-            15: const Color(0xFF41AC20),
-          };
-
-          final color = colorMap[index + 1] ?? Colors.grey; // Default color
-
-          // Wrap only the first item in a GestureDetector
-          if (index == 0) {
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => IndividualSummary()),
-                );
-              },
-              child: _buildGridItem(context, index, color),
-            );
-          }
-
-          return _buildGridItem(context, index, color);
-        },
-      ),
-    ],
-  );
 }
 
-static Widget _buildBestWorstShotSection() {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+class _VideoPlayerWidget extends StatefulWidget {
+  final String? videoPath;
+
+  const _VideoPlayerWidget({Key? key, this.videoPath}) : super(key: key);
+
+  @override
+  _VideoPlayerWidgetState createState() => _VideoPlayerWidgetState();
+}
+
+class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
+  late VideoPlayerController _controller;
+  bool _isPlaying = false;
+  bool _isInitialized = false;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeVideoPlayer();
+  }
+
+  void _initializeVideoPlayer() {
+    if (widget.videoPath != null && widget.videoPath!.isNotEmpty) {
+      _controller = VideoPlayerController.file(File(widget.videoPath!));
+    } else {
+      _controller = VideoPlayerController.asset('assets/shooting_replay.mp4');
+    }
+
+    _controller.initialize().then((_) {
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+          _controller.setLooping(true); // ✅ Enable looping
+          _controller.play(); // ✅ Auto-play video when initialized
+          _isPlaying = true;
+        });
+      }
+    }).catchError((error) {
+      print('Error initializing video player: $error');
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+        });
+      }
+    });
+  }
+
+  void _togglePlayPause() {
+    if (_isInitialized) {
+      setState(() {
+        if (_isPlaying) {
+          _controller.pause();
+        } else {
+          _controller.play();
+        }
+        _isPlaying = !_isPlaying;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_hasError) {
+      return Container(
+        height: 200,
+        width: double.infinity,
+        color: Colors.black12,
+        child: const Center(
+          child: Text(
+            'Unable to load video',
+            style: TextStyle(color: Colors.black54),
+          ),
+        ),
+      );
+    }
+
+    return Column(
       children: [
-        _buildShotDetail('Best Shot:', '10', const Color(0xFF41AC20)),
-        _buildShotDetail('Worst Shot:', '8', const Color(0xFFC82020)),
-      ],
-    ),
-  );
-}
+        const SizedBox(height: 24), // ✅ Ensures spacing before the video
+        _isInitialized
+            ? AspectRatio(
+                aspectRatio: _controller.value.aspectRatio,
+                child: VideoPlayer(_controller),
+              )
+            : const SizedBox(
+                height: 200, 
+                child: Center(child: CircularProgressIndicator())
+              ),
 
-static Widget _buildShotDetail(String label, String value, Color labelColor) {
-  return RichText(
-    textAlign: TextAlign.center,
-    text: TextSpan(
-      children: [
-        TextSpan(
-          text: label,
-          style: TextStyle(
-            color: labelColor,
-            fontSize: 16,
-            fontFamily: 'Open Sans',
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        TextSpan(
-          text: ' $value',
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 16,
-            fontFamily: 'Open Sans',
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-
-// Updated _buildGridItem to take a single color instead of a list
-static Widget _buildGridItem(BuildContext context, int index, Color color) {
-  return GestureDetector(
-    onTap: () {
-      print("Tapped on Shot ${index + 1}"); // Debugging
-    },
-    child: MouseRegion(
-      cursor: SystemMouseCursors.click, // Show hand cursor on hover
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150), // Smooth animation
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
-          color: color, // ✅ Solid background color instead of gradient
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1), // ✅ Reduced shadow for a non-shiny look
-              blurRadius: 2,
-              offset: const Offset(0, 1),
+        // ✅ Play/Pause Button (Directly Below Video)
+        const SizedBox(height: 64), // ✅ Small gap between video and button
+        GestureDetector(
+          onTap: _togglePlayPause,
+          child: Container(
+            width: 60, // ✅ Circular size
+            height: 60, // ✅ Circular size
+            decoration: BoxDecoration(
+              color: const Color(0xFF397AC5), // ✅ Blue background (same as header)
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12), // ✅ Ripple effect on tap
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => IndividualSummary()),
-            );
-          },
-          child: Center(
-            child: Text(
-              '${index + 1}',
-              style: const TextStyle(
-                color: Colors.black, // ✅ Ensuring strong contrast
-                fontSize: 18, // ✅ Slightly larger text
-                decoration: TextDecoration.underline, // ✅ Underline effect
-                decorationColor: Colors.black, // ✅ Force black underline
-                decorationThickness: 2, // ✅ Make underline thicker
-                fontWeight: FontWeight.normal, // ✅ Remove bold
+            child: Center(
+              child: Icon(
+                _isPlaying ? Icons.pause : Icons.play_arrow,
+                size: 32, // ✅ Icon size
+                color: Colors.white, // ✅ White icon for contrast
               ),
             ),
           ),
         ),
-      ),
-    ),
-  );
+
+        const SizedBox(height: 32), // ✅ Ensures spacing after the button
+      ],
+    );
+  }
 }
-}
+

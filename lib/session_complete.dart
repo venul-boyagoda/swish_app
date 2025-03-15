@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:swish_app/general_summary.dart'; // Required for SystemChrome
+import 'package:swish_app/general_summary.dart';
+import 'package:swish_app/symposium_summary_screen.dart'; // Required for SystemChrome
 
 class SessionComplete extends StatelessWidget {
+  final String? videoPath;
+
+  const SessionComplete({Key? key, this.videoPath}) : super(key: key);
   @override
   Widget build(BuildContext context) {
     // Make the status bar blend with the header
@@ -139,7 +143,7 @@ Widget _buildHeader() {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Color(0xFF397AC5),
-              fontSize: 24,
+              fontSize: 16flutter runApp,
               fontFamily: 'Open Sans',
               fontWeight: FontWeight.w400,
               height: 1,
@@ -158,7 +162,7 @@ Widget _buildHeader() {
             onPressed: () {
               Navigator.push(
                 context, // Ensure the correct context is passed here
-                MaterialPageRoute(builder: (context) => GeneralSummaryScreen()),
+                MaterialPageRoute(builder: (context) => SymposiumSummaryScreen(videoPath: videoPath)),
               );
             },
             child: const Text(

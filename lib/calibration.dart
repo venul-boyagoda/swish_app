@@ -78,41 +78,43 @@ class Calibration extends StatelessWidget {
   }
 
   Widget _buildCalibrationCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'Calibrate Sleeve',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF397AC5),
-              fontSize: 32,
-              fontFamily: 'Roboto',
-              fontWeight: FontWeight.w700,
-            ),
+  return Container(
+    width: double.infinity,
+    height: 650, // Changed from constraints to fixed height
+    padding: const EdgeInsets.all(32),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(24),
+    ),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text(
+          'Calibrate Sleeve',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF397AC5),
+            fontSize: 32,
+            fontFamily: 'Roboto',
+            fontWeight: FontWeight.w700,
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Please move your arm into the position shown in the image below and press the calibration button',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF397AC5),
-              fontSize: 18,
-              fontFamily: 'Open Sans',
-            ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Please move your arm into the position shown in the image below and press the calibration button.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF397AC5),
+            fontSize: 18,
+            fontFamily: 'Open Sans',
           ),
-          const SizedBox(height: 8),
-          _buildCalibrationImage(),
-        ],
-      ),
-    );
-  }
+        ),
+        const SizedBox(height: 16),
+        Expanded(child: _buildCalibrationImage()), // Wrap in Expanded
+      ],
+    ),
+  );
+}
 
   Widget _buildCalibrationImage() {
     return Transform(
