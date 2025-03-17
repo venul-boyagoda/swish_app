@@ -1,104 +1,74 @@
 import 'dart:async';
-import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class BleService {
-  final flutterReactiveBle = FlutterReactiveBle();
-
-  // Device and UUIDs
   final String deviceId = "ED:C5:81:ED:70:84"; // Your actual MAC address
-  final Uuid imuServiceUuid = Uuid.parse("12345678-1234-5678-1234-123456789abc");
-  final Uuid imuCharacteristicUuid = Uuid.parse("87654321-4321-6789-4321-CBA987654321");
+  final Guid imuServiceUuid = Guid("12345678-1234-5678-1234-123456789abc");
+  final Guid imuCharacteristicUuid = Guid("87654321-4321-6789-4321-cba987654321");
 
+  BluetoothDevice? _device;
+  BluetoothCharacteristic? _imuCharacteristic;
   bool _isConnected = false;
-  Stream<List<int>>? imuDataStream;
+  StreamController<List<int>> _imuDataController = StreamController.broadcast();
 
-  // Getters
-  Stream<List<int>>? get imuData => imuDataStream;
+  Stream<List<int>> get imuData => _imuDataController.stream;
   bool get isConnected => _isConnected;
 
-  /// Request necessary permissions before scanning
-  Future<bool> requestBlePermissions() async {
-    Map<Permission, PermissionStatus> statuses = await [
-      Permission.bluetoothScan,
-      Permission.bluetoothConnect,
-      Permission.location,
-    ].request();
-
-    bool granted = statuses[Permission.bluetoothScan]!.isGranted &&
-        statuses[Permission.bluetoothConnect]!.isGranted &&
-        statuses[Permission.location]!.isGranted;
-
-    if (!granted) {
-      print("BLE Permissions Denied. Cannot proceed.");
-    }
-
-    return granted;
-  }
-
-  /// Connect to the IMU device
   Future<bool> connectToIMU() async {
     try {
-      bool permissionsGranted = await requestBlePermissions();
-      if (!permissionsGranted) {
-        print("Permissions not granted. Cannot connect.");
-        return false;
-      }
+      // Start scanning
+      print("Scanning for $deviceId...");
+      await FlutterBluePlus.startScan(timeout: Duration(seconds: 5));
 
-      final connectionStream = flutterReactiveBle.connectToDevice(
-        id: deviceId,
-        connectionTimeout: Duration(seconds: 5),
-      );
+      final scanResult = await FlutterBluePlus.scanResults
+          .firstWhere((results) =>
+              results.any((r) => r.device.remoteId.str.toUpperCase() == deviceId.toUpperCase()));
 
-      connectionStream.listen((ConnectionStateUpdate connectionState) {
-        print("Connection State: ${connectionState.connectionState}");
+      await FlutterBluePlus.stopScan();
 
-        if (connectionState.connectionState == DeviceConnectionState.connected) {
-          _isConnected = true;
-          print("Successfully connected to device: $deviceId");
-          subscribeToIMUData();
-        } else if (connectionState.connectionState == DeviceConnectionState.disconnected) {
-          _isConnected = false;
-          print("Disconnected from device: $deviceId");
-          unsubscribeToIMUData();
-        }
-      }, onError: (error) {
-        print("Error during connection: $error");
+      final device = scanResult.firstWhere(
+              (r) => r.device.remoteId.str.toUpperCase() == deviceId.toUpperCase())
+          .device;
+
+      _device = device;
+
+      // Connect to device
+      print("Connecting to ${device.remoteId.str}...");
+      await device.connect(autoConnect: false);
+      _isConnected = true;
+      print("Connected to ${device.remoteId.str}");
+
+      // Discover services & characteristics
+      List<BluetoothService> services = await device.discoverServices();
+      final imuService = services.firstWhere(
+          (service) => service.serviceUuid == imuServiceUuid,
+          orElse: () => throw Exception("IMU Service not found"));
+
+      _imuCharacteristic = imuService.characteristics.firstWhere(
+          (c) => c.characteristicUuid == imuCharacteristicUuid && c.properties.notify,
+          orElse: () => throw Exception("IMU Characteristic not found or not notifiable"));
+
+      // Subscribe to notifications
+      await _imuCharacteristic!.setNotifyValue(true);
+      _imuCharacteristic!.onValueReceived.listen((data) {
+        print("IMU Data Received: $data");
+        _imuDataController.add(data);
       });
 
       return true;
     } catch (e) {
-      print("IMU CONNECTION ERROR: $e");
+      print("Connection error: $e");
+      _isConnected = false;
       return false;
     }
   }
 
-  /// Subscribe to IMU data (broadcast stream only)
-  void subscribeToIMUData() {
-    if (imuDataStream != null) return;  // Prevent duplicate streams
-
-    final characteristic = QualifiedCharacteristic(
-      serviceId: imuServiceUuid,
-      characteristicId: imuCharacteristicUuid,
-      deviceId: deviceId,
-    );
-
-    imuDataStream = flutterReactiveBle
-        .subscribeToCharacteristic(characteristic)
-        .asBroadcastStream();
-
-    print("IMU broadcast stream created ✅ for device $deviceId");
-  }
-
-  /// Unsubscribe from IMU data
-  void unsubscribeToIMUData() {
-    imuDataStream = null;
-    print("IMU data stream reference cleared.");
-  }
-
-  /// Call this method when the training ends (button press)
-  void endTraining() {
-    unsubscribeToIMUData();
-    print("Training ended. Stopped IMU data stream.");
+  Future<void> disconnect() async {
+    if (_device != null) {
+      await _device!.disconnect();
+      _isConnected = false;
+      _imuDataController.close();
+      print("Disconnected from device");
+    }
   }
 }

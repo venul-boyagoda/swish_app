@@ -29,8 +29,8 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
-    _startTimer();
+    // _initializeCamera();
+    // _startTimer();
     widget.bleService.connectToIMU();
     _waitForStream();
   }
@@ -45,7 +45,10 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
       setState(() {
         imuData = data;
       });
+    }, onError: (e) {
+      print("Error in IMU data stream: $e");
     });
+
     print("✅ Subscribed to IMU stream!");
   }
 
@@ -54,7 +57,7 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     _cameraController?.dispose();
     _timer?.cancel();
     imuDataSubscription?.cancel();
-    widget.bleService.unsubscribeToIMUData();
+    // widget.bleService.unsubscribeToIMUData();
     super.dispose();
   }
 
