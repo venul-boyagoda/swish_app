@@ -1,0 +1,2 @@
+C:/Users/brian/OneDrive - University of Waterloo/SWISH Capstone/Swish App/swish_app/android/app/.cxx/Debug/41l6u60n/x86/CMakeFiles/edit_cache.dir
+C:/Users/brian/OneDrive - University of Waterloo/SWISH Capstone/Swish App/swish_app/android/app/.cxx/Debug/41l6u60n/x86/CMakeFiles/rebuild_cache.dir

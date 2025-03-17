@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:async';
 import 'package:swish_app/services/phone_service.dart';
+import 'package:swish_app/services/ble_service.dart';
 
 class TrainingInProgress extends StatefulWidget {
   @override
@@ -19,12 +20,23 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   String? _videoPath;
   Timer? _timer;
   int _elapsedSeconds = 0;
+  final BleService bleService = BleService();
+  List<int> imuData = [];
 
   @override
   void initState() {
     super.initState();
     _initializeCamera();
     _startTimer();
+    if (!bleService.isConnected) {
+      print("BLE - NOT CONNECTED YET");
+      bleService.connectToIMU();
+    }
+    bleService.imuData?.listen((data) {
+      setState(() {
+        imuData = data;
+      });
+    });
   }
 
   Future<void> _initializeCamera() async {
@@ -318,6 +330,7 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   }
 }
 
+// OLD BUILDENDTRAININGBUTTON WIDGET
 //   Widget _buildEndTrainingButton() {
 //     return SizedBox(
 //       width: double.infinity,

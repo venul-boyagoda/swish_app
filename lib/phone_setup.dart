@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:swish_app/training_in_progress.dart';
+import 'package:swish_app/services/ble_service.dart';
 
 class PhoneSetup extends StatelessWidget {
+  final BleService bleService = BleService();
+
   @override
   Widget build(BuildContext context) {
     final double topPadding = MediaQuery.of(context).padding.top;
@@ -139,7 +142,10 @@ class PhoneSetup extends StatelessWidget {
     return Align(
       alignment: Alignment.centerRight,
       child: GestureDetector(
-        onTap: () {
+        onTap: () async {
+
+          await bleService.connectToIMU();
+
           Navigator.push(
             context, MaterialPageRoute(builder: (context) => TrainingInProgress()),
           );
