@@ -4,13 +4,16 @@ import 'package:permission_handler/permission_handler.dart';
 
 class BleService {
   final flutterReactiveBle = FlutterReactiveBle();
-  final String deviceId = "E1FA324C-88C7-9F34-E843-300825A6894C";
-  final Uuid imuServiceUuid = Uuid.parse("87654321-4321-6789-4321-cba987654321");
+
+  // Device and UUIDs
+  final String deviceId = "ED:C5:81:ED:70:84"; // Your actual MAC address
+  final Uuid imuServiceUuid = Uuid.parse("12345678-1234-5678-1234-123456789abc");
+  final Uuid imuCharacteristicUuid = Uuid.parse("87654321-4321-6789-4321-CBA987654321");
 
   bool _isConnected = false;
   Stream<List<int>>? imuDataStream;
 
-  //Getters
+  // Getters
   Stream<List<int>>? get imuData => imuDataStream;
   bool get isConnected => _isConnected;
 
@@ -19,7 +22,7 @@ class BleService {
     Map<Permission, PermissionStatus> statuses = await [
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
-      Permission.location
+      Permission.location,
     ].request();
 
     bool granted = statuses[Permission.bluetoothScan]!.isGranted &&
@@ -33,48 +36,69 @@ class BleService {
     return granted;
   }
 
-  Future<void> connectToIMU() async {
-    if (!await requestBlePermissions()) return;
-
+  /// Connect to the IMU device
+  Future<bool> connectToIMU() async {
     try {
-      print("Scanning for BNO055...");
+      bool permissionsGranted = await requestBlePermissions();
+      if (!permissionsGranted) {
+        print("Permissions not granted. Cannot connect.");
+        return false;
+      }
 
-      /// Declare scanSubscription before using it
-      late StreamSubscription<DiscoveredDevice> scanSubscription;
+      final connectionStream = flutterReactiveBle.connectToDevice(
+        id: deviceId,
+        connectionTimeout: Duration(seconds: 5),
+      );
 
-      scanSubscription = flutterReactiveBle.scanForDevices(
-        withServices: [imuServiceUuid],
-        scanMode: ScanMode.lowLatency,
-      ).listen((device) async {
-        if (device.id == deviceId) {
-          print("Found BNO055 IMU, connecting...");
-          scanSubscription.cancel(); // Now this works correctly!
+      connectionStream.listen((ConnectionStateUpdate connectionState) {
+        print("Connection State: ${connectionState.connectionState}");
 
-          final connectionStream = flutterReactiveBle.connectToDevice(id: deviceId);
-          connectionStream.listen((connectionState) {
-            if (connectionState.connectionState == DeviceConnectionState.connected) {
-              print("Connected to BNO055!");
-              subscribeToIMUData();
-            }
-          });
+        if (connectionState.connectionState == DeviceConnectionState.connected) {
+          _isConnected = true;
+          print("Successfully connected to device: $deviceId");
+          subscribeToIMUData();
+        } else if (connectionState.connectionState == DeviceConnectionState.disconnected) {
+          _isConnected = false;
+          print("Disconnected from device: $deviceId");
+          unsubscribeToIMUData();
         }
+      }, onError: (error) {
+        print("Error during connection: $error");
       });
-      _isConnected = true;
+
+      return true;
     } catch (e) {
-      print("BLE Connection Error: $e");
+      print("IMU CONNECTION ERROR: $e");
+      return false;
     }
   }
 
+  /// Subscribe to IMU data (broadcast stream only)
   void subscribeToIMUData() {
+    if (imuDataStream != null) return;  // Prevent duplicate streams
+
     final characteristic = QualifiedCharacteristic(
       serviceId: imuServiceUuid,
-      characteristicId: imuServiceUuid,
+      characteristicId: imuCharacteristicUuid,
       deviceId: deviceId,
     );
 
-    imuDataStream = flutterReactiveBle.subscribeToCharacteristic(characteristic);
-    imuDataStream!.listen((data) {
-      print("IMU Data Received: $data");
-    });
+    imuDataStream = flutterReactiveBle
+        .subscribeToCharacteristic(characteristic)
+        .asBroadcastStream();
+
+    print("IMU broadcast stream created ✅ for device $deviceId");
+  }
+
+  /// Unsubscribe from IMU data
+  void unsubscribeToIMUData() {
+    imuDataStream = null;
+    print("IMU data stream reference cleared.");
+  }
+
+  /// Call this method when the training ends (button press)
+  void endTraining() {
+    unsubscribeToIMUData();
+    print("Training ended. Stopped IMU data stream.");
   }
 }

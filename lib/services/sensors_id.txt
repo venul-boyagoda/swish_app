@@ -1,0 +1,8 @@
+// Nordic Thingy Dev Kit
+final String deviceId = "ED:C5:81:ED:70:84"; // Your actual MAC address
+final Uuid imuServiceUuid = Uuid.parse("12345678-1234-5678-1234-123456789abc");
+final Uuid imuCharacteristicUuid = Uuid.parse("87654321-4321-6789-4321-CBA987654321");
+
+// BNO???
+THINGY_ADDRESS = "E1FA324C-88C7-9F34-E843-300825A6894C"  # Your device address
+CHARACTERISTIC_UUID = "87654321-4321-6789-4321-cba987654321"  # Correct UUID

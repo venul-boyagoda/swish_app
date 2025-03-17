@@ -18,7 +18,7 @@ class PhoneSetup extends StatelessWidget {
             image: AssetImage('assets/balls_background.png'),
             fit: BoxFit.cover,
           ),
-          color: const Color(0xFF66B9FE), // Ensure background color
+          color: const Color(0xFF66B9FE),
         ),
         child: Column(
           children: [
@@ -38,12 +38,12 @@ class PhoneSetup extends StatelessWidget {
   Widget _buildTopBar(double topPadding) {
     return Container(
       width: double.infinity,
-      height: topPadding + 64, // Covers status bar & header
+      height: topPadding + 64,
       padding: EdgeInsets.only(top: topPadding),
       decoration: const BoxDecoration(color: Color(0xFF397AC5)),
       child: Row(
         children: [
-          _buildIconButton(Icons.menu), // Hamburger Menu Icon
+          _buildIconButton(Icons.menu),
           const Expanded(
             child: Text(
               'S.W.I.S.H',
@@ -56,7 +56,7 @@ class PhoneSetup extends StatelessWidget {
               ),
             ),
           ),
-          _buildIconButton(Icons.account_circle), // Profile Icon
+          _buildIconButton(Icons.account_circle),
         ],
       ),
     );
@@ -65,7 +65,7 @@ class PhoneSetup extends StatelessWidget {
   Widget _buildIconButton(IconData icon) {
     return IconButton(
       icon: Icon(icon, color: Colors.white, size: 28),
-      onPressed: () {}, // Add functionality if needed
+      onPressed: () {},
     );
   }
 
@@ -81,45 +81,45 @@ class PhoneSetup extends StatelessWidget {
   }
 
   Widget _buildCalibrationCard() {
-  return Container(
-    width: double.infinity,
-    height: 650, // Changed from constraints to fixed height
-    padding: const EdgeInsets.all(32),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(24),
-    ),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text(
-          'Setup Phone Camera',
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: Color(0xFF397AC5),
-            fontSize: 28,
-            fontFamily: 'Roboto',
-            fontWeight: FontWeight.w700,
+    return Container(
+      width: double.infinity,
+      height: 650,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            'Setup Phone Camera',
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Color(0xFF397AC5),
+              fontSize: 28,
+              fontFamily: 'Roboto',
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Prop your phone as seen below so the net is visible.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Color(0xFF397AC5),
-            fontSize: 18,
-            fontFamily: 'Open Sans',
+          const SizedBox(height: 8),
+          const Text(
+            'Prop your phone as seen below so the net is visible.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF397AC5),
+              fontSize: 18,
+              fontFamily: 'Open Sans',
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        Expanded(child: _buildCalibrationImage()), // Wrap in Expanded
-      ],
-    ),
-  );
-}
+          const SizedBox(height: 16),
+          Expanded(child: _buildCalibrationImage()),
+        ],
+      ),
+    );
+  }
 
   Widget _buildCalibrationImage() {
     return Transform(
@@ -143,12 +143,17 @@ class PhoneSetup extends StatelessWidget {
       alignment: Alignment.centerRight,
       child: GestureDetector(
         onTap: () async {
-
-          await bleService.connectToIMU();
-
-          Navigator.push(
-            context, MaterialPageRoute(builder: (context) => TrainingInProgress()),
-          );
+          bool connected = await bleService.connectToIMU();
+          if (connected) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TrainingInProgress(bleService: bleService),
+              ),
+            );
+          } else {
+            print("Failed to connect to IMU");
+          }
         },
         child: Container(
           width: 127,
