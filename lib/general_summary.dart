@@ -6,7 +6,14 @@ import 'package:swish_app/individual_summary.dart';
 
 
 class GeneralSummaryScreen extends StatelessWidget {
-  const GeneralSummaryScreen({Key? key}) : super(key: key);
+    final dynamic bleService;
+
+    const GeneralSummaryScreen({
+    Key? key,
+    required this.bleService,  // Make it required
+    // other parameters...
+  }) : super(key: key);
+  
 
   // Helper widget for table header rows
   static Widget tableHeaderRow({
@@ -316,8 +323,8 @@ Widget build(BuildContext context) {
                         elevation: 4,
                         ),
                         onPressed: () {
-                        Navigator.push(
-                            context, MaterialPageRoute(builder: (context) => HomeScreen()));
+                        // Navigator.push(
+                        //     context, MaterialPageRoute(builder: (context) => HomeScreen(bleService: bleService)));
                         },
                         child: const Text(
                         'Finish',

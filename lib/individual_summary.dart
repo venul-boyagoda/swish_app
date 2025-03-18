@@ -144,12 +144,12 @@ Widget _buildPreviousButton(BuildContext context) {
   return Align(
     alignment: Alignment.centerLeft, // ✅ Left align the button
     child: GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => GeneralSummaryScreen()), // ✅ Replace with your actual screen
-        );
-      },
+      // onTap: () {
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (context) => GeneralSummaryScreen()), // ✅ Replace with your actual screen
+      //   );
+      // },
       child: Container(
         width: 109, // ✅ Fixed width of 109 pixels
         height: 40,
@@ -470,10 +470,10 @@ class _TopHeader extends StatelessWidget {
         children: [
           // Back arrow button with navigation
           GestureDetector(
-            onTap: () {
-               Navigator.push(
-                context, MaterialPageRoute(builder: (context) => GeneralSummaryScreen()));
-            },
+            // onTap: () {
+            //    Navigator.push(
+            //     context, MaterialPageRoute(builder: (context) => GeneralSummaryScreen()));
+            // },
             child: const Icon(Icons.arrow_back, size: 24, color: Colors.white),
           ),
           const SizedBox(width: 12),
