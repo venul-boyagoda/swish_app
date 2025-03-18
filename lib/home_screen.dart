@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:swish_app/calibration.dart';
 import 'package:swish_app/training_in_progress.dart';
+import 'package:swish_app/services/phone_service.dart';
 import 'package:swish_app/services/ble_service.dart';
 
 
@@ -238,47 +239,56 @@ Widget _buildFinalButtons() {
   );
 }
 
-Widget _buildRoundedButton(String text, Color bgColor, Color textColor) {
-  return GestureDetector(
-    onTap: () {
-      if (text == 'Cancel') {
-        setState(() {
-          _showOverlay = false; // Close popup
-        });
-      } else if (text == 'Start Training') {
-        Navigator.push(
-          context, 
-          MaterialPageRoute(
-            builder: (context) => TrainingInProgress(
-              bleService: bleService
-            )
-          )
-        );
-      }
-    },
-    child: Container(
-      width: 130,
-      height: 45,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(width: 1, color: Color(0xFF397AC5)),
-      ),
-      child: FittedBox(
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+  Widget _buildRoundedButton(String text, Color bgColor, Color textColor) {
+    return GestureDetector(
+      onTap: () async {
+        if (text == 'Cancel') {
+          setState(() {
+            _showOverlay = false;
+          });
+        } else if (text == 'Start Training') {
+          // Upload arm info but don't block navigation on failure
+          if (_selectedArm != null) {
+            try {
+              await uploadArmInfo(_selectedArm!);
+            } catch (e) {
+              print("⚠️ Failed to upload arm info, but continuing: $e");
+            }
+          }
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TrainingInProgress(
+                bleService: bleService,
+              ),
+            ),
+          );
+        }
+      },
+      child: Container(
+        width: 130,
+        height: 45,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(width: 1, color: Color(0xFF397AC5)),
+        ),
+        child: FittedBox(
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
+
 
 
   @override

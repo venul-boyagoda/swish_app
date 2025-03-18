@@ -1,4 +1,4 @@
-import 'package:flutter/services.dart'; // Required for SystemChrome
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:swish_app/services/ble_service.dart';
@@ -7,13 +7,12 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:swish_app/services/ble_service.dart';
 import 'package:swish_app/services/phone_service.dart';
 
 class TrainingInProgress extends StatefulWidget {
-  final BleService bleService; // ✅ Add this parameter
+  final BleService bleService;
 
-  TrainingInProgress({required this.bleService}); // ✅ Constructor
+  TrainingInProgress({required this.bleService});
 
   @override
   _TrainingInProgressState createState() => _TrainingInProgressState();
@@ -48,9 +47,6 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     imuDataSubscription = widget.bleService.imuData!.listen((data) {
       List<List<double>> matrix = decodeIMUDataToMatrix(data);
       decodedMatrices.add(matrix);
-      // print("Raw IMU Data received: $data");
-      // print("Decoded Matrix: $matrix");
-
       setState(() {
         imuData = data;
       });
@@ -127,21 +123,19 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     if (_cameraController != null && _cameraController!.value.isRecordingVideo) {
       final XFile videoFile = await _cameraController!.stopVideoRecording();
       _timer?.cancel();
-      
-      // Save the video file permanently
+
       final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
       final savedVideoPath = '${directory.path}/saved_training_$timestamp.mp4';
-      
-      // Copy the temporary file to permanent storage
+
       final File tempFile = File(videoFile.path);
       await tempFile.copy(savedVideoPath);
-      
+
       setState(() {
         _isRecording = false;
         _videoPath = savedVideoPath;
       });
-      
+
       print('Video saved to: $_videoPath');
       return savedVideoPath;
     }
@@ -149,18 +143,10 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   }
 
   @override
-  void dispose() {
-    _cameraController?.dispose();
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // Make the status bar overlay match the header color
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent, // Make status bar background transparent
-      statusBarIconBrightness: Brightness.light, // Make status bar icons white
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
     ));
 
     return Scaffold(
@@ -229,12 +215,22 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     );
   }
 
+  Widget _buildTrainingCard() {
+    return Column(
+      children: [
+        _buildDebugPanel(),
+        _buildCameraView(),
+        const SizedBox(height: 16),
+        _buildEndTrainingButton(),
+      ],
+    );
+  }
+
   Widget _buildDebugPanel() {
     List<List<double>>? latestMatrix = decodedMatrices.isNotEmpty ? decodedMatrices.last : null;
 
     return Card(
       color: Colors.white,
-      margin: const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -254,7 +250,7 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
               Text("Waiting for matrix..."),
           ],
         ),
-      ],
+      ),
     );
   }
 
@@ -266,7 +262,10 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: _cameraController != null && _cameraController!.value.isInitialized
-          ? CameraPreview(_cameraController!)
+          ? ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: CameraPreview(_cameraController!),
+      )
           : Center(child: CircularProgressIndicator()),
     );
   }
@@ -274,7 +273,7 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   Widget _buildEndTrainingButton() {
     return GestureDetector(
       onTap: () async {
-        await uploadIMUData(decodedMatrices);
+        await uploadIMUData(decodedMatrices); // ONLY sending matrix data
         final String? savedVideoPath = await _stopRecording();
         if (savedVideoPath != null) {
           Navigator.pushReplacement(
@@ -283,28 +282,33 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
               builder: (context) => SessionComplete(videoPath: savedVideoPath),
             ),
           );
-        },
-        child: Container(
-          width: 200,
-          height: 50,
-          decoration: ShapeDecoration(
-            color: const Color(0xFF397AC5),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(100),
-            ),
+        }
+      },
+      child: Container(
+        width: 200,
+        height: 50,
+        decoration: ShapeDecoration(
+          color: const Color(0xFF397AC5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100),
           ),
-          child: const Center(
-            child: Text(
-              'End Training',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+        ),
+        child: const Center(
+          child: Text(
+            'End Training',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
       ),
     );
+  }
+
+
+  Widget _buildIconButton() {
+    return Icon(Icons.sports_basketball, color: Colors.white);
   }
 }

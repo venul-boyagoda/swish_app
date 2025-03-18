@@ -24,7 +24,6 @@ Future<void> uploadVideo(File videoFile) async {
 }
 
 Future<void> uploadIMUData(List<List<List<double>>> matrixData) async {
-  // matrixData is now List of 3x3 matrices
   Map<String, dynamic> data = {
     'matrices': matrixData.map((matrix) {
       return {
@@ -58,5 +57,24 @@ Future<void> uploadIMUData(List<List<List<double>>> matrixData) async {
     }
   } catch (e) {
     print("Exception: $e");
+  }
+}
+
+
+Future<void> uploadArmInfo(String selectedArm) async {
+  Map<String, dynamic> data = {
+    'arm': selectedArm,
+  };
+
+  var response = await http.post(
+    Uri.parse('http://172.20.10.8:8000/uploadArm/'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(data),
+  );
+
+  if (response.statusCode == 200) {
+    print("Arm info uploaded successfully: $selectedArm");
+  } else {
+    print("Error uploading arm info: ${response.statusCode}");
   }
 }
