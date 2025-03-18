@@ -8,21 +8,39 @@ class BleService {
 
   BluetoothDevice? _device;
   BluetoothCharacteristic? _imuCharacteristic;
-  bool _isConnected = false;
+  StreamSubscription<BluetoothConnectionState>? _connectionSub;
   StreamController<List<int>> _imuDataController = StreamController.broadcast();
+
+  bool _isConnected = false;
 
   Stream<List<int>> get imuData => _imuDataController.stream;
   bool get isConnected => _isConnected;
 
   Future<bool> connectToIMU() async {
     try {
-      // Start scanning
-      print("Scanning for $deviceId...");
+      // Try direct connection first
+      print("🔗 Trying direct connection to $deviceId...");
+      _device = BluetoothDevice(remoteId: DeviceIdentifier(deviceId));
+
+      await _device!.connect(autoConnect: true);
+      _setupConnectionListener(_device!);
+      await _setupIMUNotifications();
+      print("✅ Direct connection successful!");
+      return true;
+
+    } catch (e) {
+      print("⚠️ Direct connection failed: $e");
+      return _fallbackScanConnect();
+    }
+  }
+
+  Future<bool> _fallbackScanConnect() async {
+    try {
+      print("🔄 Scanning for $deviceId...");
       await FlutterBluePlus.startScan(timeout: Duration(seconds: 5));
 
-      final scanResult = await FlutterBluePlus.scanResults
-          .firstWhere((results) =>
-              results.any((r) => r.device.remoteId.str.toUpperCase() == deviceId.toUpperCase()));
+      final scanResult = await FlutterBluePlus.scanResults.firstWhere((results) =>
+          results.any((r) => r.device.remoteId.str.toUpperCase() == deviceId.toUpperCase()));
 
       await FlutterBluePlus.stopScan();
 
@@ -32,43 +50,74 @@ class BleService {
 
       _device = device;
 
-      // Connect to device
-      print("Connecting to ${device.remoteId.str}...");
+      print("🔗 Connecting to ${device.remoteId.str} via scan...");
       await device.connect(autoConnect: false);
-      _isConnected = true;
-      print("Connected to ${device.remoteId.str}");
+      _setupConnectionListener(device);
+      await _setupIMUNotifications();
 
-      // Discover services & characteristics
-      List<BluetoothService> services = await device.discoverServices();
-      final imuService = services.firstWhere(
-          (service) => service.serviceUuid == imuServiceUuid,
-          orElse: () => throw Exception("IMU Service not found"));
-
-      _imuCharacteristic = imuService.characteristics.firstWhere(
-          (c) => c.characteristicUuid == imuCharacteristicUuid && c.properties.notify,
-          orElse: () => throw Exception("IMU Characteristic not found or not notifiable"));
-
-      // Subscribe to notifications
-      await _imuCharacteristic!.setNotifyValue(true);
-      _imuCharacteristic!.onValueReceived.listen((data) {
-        print("IMU Data Received: $data");
-        _imuDataController.add(data);
-      });
-
+      print("✅ Connected via fallback scan!");
       return true;
+
     } catch (e) {
-      print("Connection error: $e");
+      print("❌ Fallback scan failed: $e");
       _isConnected = false;
       return false;
     }
   }
 
+  Future<void> _setupIMUNotifications() async {
+    List<BluetoothService> services = await _device!.discoverServices();
+    final imuService = services.firstWhere(
+          (service) => service.serviceUuid == imuServiceUuid,
+      orElse: () => throw Exception("IMU Service not found"),
+    );
+
+    _imuCharacteristic = imuService.characteristics.firstWhere(
+          (c) => c.characteristicUuid == imuCharacteristicUuid && c.properties.notify,
+      orElse: () => throw Exception("IMU Characteristic not found or not notifiable"),
+    );
+
+    await _imuCharacteristic!.setNotifyValue(true);
+    _imuCharacteristic!.onValueReceived.listen((data) {
+      print("📡 IMU Data: $data");
+      if (!_imuDataController.isClosed) {
+        _imuDataController.add(data);
+      }
+    });
+
+    _isConnected = true;
+  }
+
+  void _setupConnectionListener(BluetoothDevice device) {
+    _connectionSub?.cancel(); // clean old listener
+    _connectionSub = device.connectionState.listen((state) {
+      print("🔄 Connection state: $state");
+      if (state == BluetoothConnectionState.disconnected) {
+        _isConnected = false;
+        print("❌ Device disconnected");
+      } else if (state == BluetoothConnectionState.connected) {
+        _isConnected = true;
+        print("🟢 Device connected");
+      }
+    });
+  }
+
   Future<void> disconnect() async {
-    if (_device != null) {
-      await _device!.disconnect();
+    try {
+      await _connectionSub?.cancel();
+      if (_imuCharacteristic != null) {
+        await _imuCharacteristic!.setNotifyValue(false);
+      }
+      if (_device != null) {
+        await _device!.disconnect();
+      }
       _isConnected = false;
-      _imuDataController.close();
-      print("Disconnected from device");
+      if (!_imuDataController.isClosed) {
+        await _imuDataController.close();
+      }
+      print("🛑 Fully disconnected from device");
+    } catch (e) {
+      print("⚠️ Error during disconnect: $e");
     }
   }
 }
