@@ -251,6 +251,7 @@ Widget _buildFinalButtons() {
           if (_selectedArm != null) {
             try {
               await uploadArmInfo(_selectedArm!);
+              print("Uploading arm info");
             } catch (e) {
               print("⚠️ Failed to upload arm info, but continuing: $e");
             }
