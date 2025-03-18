@@ -254,21 +254,23 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     );
   }
 
-  Widget _buildCameraView() {
-    return Container(
-      width: 299,
-      height: 475,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: _cameraController != null && _cameraController!.value.isInitialized
-          ? ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: CameraPreview(_cameraController!),
-      )
-          : Center(child: CircularProgressIndicator()),
-    );
-  }
+Widget _buildCameraView() {
+  return Container(
+    width: 299,
+    height: 475,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Color(0xFF397AC5), width: 4), // ✅ Blue Border
+    ),
+    child: _cameraController != null && _cameraController!.value.isInitialized
+        ? ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: CameraPreview(_cameraController!),
+          )
+        : Center(child: CircularProgressIndicator()),
+  );
+}
+
 
   Widget _buildEndTrainingButton() {
     return GestureDetector(
