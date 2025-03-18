@@ -276,6 +276,7 @@ Widget _buildCameraView() {
     return GestureDetector(
       onTap: () async {
         await uploadIMUData(decodedMatrices); // ONLY sending matrix data
+        await widget.bleService.disconnect();
         final String? savedVideoPath = await _stopRecording();
         if (savedVideoPath != null) {
           Navigator.pushReplacement(
