@@ -46,8 +46,8 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     imuDataSubscription = widget.bleService.imuData!.listen((data) {
       List<List<double>> matrix = decodeIMUDataToMatrix(data);
       decodedMatrices.add(matrix);
-      print("🔴 Raw IMU Data received: $data");
-      print("🟢 Decoded Matrix: $matrix");
+      // print("Raw IMU Data received: $data");
+      // print("Decoded Matrix: $matrix");
 
       setState(() {
         imuData = data;
@@ -163,6 +163,8 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   }
 
   Widget _buildDebugPanel() {
+    List<List<double>>? latestMatrix = decodedMatrices.isNotEmpty ? decodedMatrices.last : null;
+
     return Card(
       color: Colors.white,
       margin: const EdgeInsets.all(16),
@@ -175,7 +177,14 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
             Text("IMU Debug Info", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
             Text("BLE Status: ${widget.bleService.isConnected ? "Connected ✅" : "Connecting... ⏳"}"),
-            Text("IMU Data: ${imuData.isNotEmpty ? imuData.toString() : "Waiting..."}"),
+            const SizedBox(height: 8),
+            Text("Raw IMU Data: ${imuData.isNotEmpty ? imuData.toString() : "Waiting..."}"),
+            const SizedBox(height: 8),
+            Text("Decoded Matrix:"),
+            if (latestMatrix != null)
+              ...latestMatrix.map((row) => Text(row.toString())),
+            if (latestMatrix == null)
+              Text("Waiting for matrix..."),
           ],
         ),
       ),

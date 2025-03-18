@@ -79,7 +79,7 @@ class BleService {
 
     await _imuCharacteristic!.setNotifyValue(true);
     _imuCharacteristic!.onValueReceived.listen((data) {
-      print("📡 IMU Data: $data");
+      // print("📡 IMU Data: $data");
       if (!_imuDataController.isClosed) {
         _imuDataController.add(data);
       }
