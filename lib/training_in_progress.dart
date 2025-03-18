@@ -4,7 +4,9 @@ import 'package:swish_app/session_complete.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:swish_app/services/ble_service.dart';
+import 'package:swish_app/services/phone_service.dart';
 
 class TrainingInProgress extends StatefulWidget {
   final BleService bleService;
@@ -25,12 +27,13 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
 
   List<int> imuData = [];
   StreamSubscription<List<int>>? imuDataSubscription;
+  List<List<List<double>>> decodedMatrices = [];
 
   @override
   void initState() {
     super.initState();
-    // _initializeCamera();
-    // _startTimer();
+    _initializeCamera();
+    _startTimer();
     widget.bleService.connectToIMU();
     _waitForStream();
   }
@@ -41,7 +44,11 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     }
 
     imuDataSubscription = widget.bleService.imuData!.listen((data) {
+      List<List<double>> matrix = decodeIMUDataToMatrix(data);
+      decodedMatrices.add(matrix);
       print("🔴 Raw IMU Data received: $data");
+      print("🟢 Decoded Matrix: $matrix");
+
       setState(() {
         imuData = data;
       });
@@ -52,12 +59,26 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     print("✅ Subscribed to IMU stream!");
   }
 
+  List<List<double>> decodeIMUDataToMatrix(List<int> rawData) {
+    List<double> matrixValues = [];
+    for (int i = 0; i < rawData.length; i += 4) {
+      if (i + 4 <= rawData.length) {
+        ByteData bytes = ByteData.sublistView(Uint8List.fromList(rawData.sublist(i, i + 4)));
+        matrixValues.add(bytes.getFloat32(0, Endian.little));
+      }
+    }
+    return [
+      matrixValues.sublist(0, 3),
+      matrixValues.sublist(3, 6),
+      matrixValues.sublist(6, 9),
+    ];
+  }
+
   @override
   void dispose() {
     _cameraController?.dispose();
     _timer?.cancel();
     imuDataSubscription?.cancel();
-    // widget.bleService.unsubscribeToIMUData();
     super.dispose();
   }
 
@@ -179,6 +200,7 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   Widget _buildEndTrainingButton() {
     return GestureDetector(
       onTap: () async {
+        await uploadIMUData(decodedMatrices);
         final String? savedVideoPath = await _stopRecording();
         if (savedVideoPath != null) {
           Navigator.pushReplacement(
