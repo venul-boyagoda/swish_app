@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:swish_app/calibration.dart';
 import 'package:swish_app/training_in_progress.dart';
+import 'package:swish_app/services/ble_service.dart';
 
-class HomeScreen extends StatefulWidget {
+
+class HomeScreen extends StatefulWidget {  
   const HomeScreen({Key? key}) : super(key: key);
+  
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final BleService bleService = BleService();
+
   bool _showOverlay = false;
   String? _selectedArm; // Track selected button
-  double _shotCount = 5; // Slider initial value
+  //double _shotCount = 5; // Slider initial value
 
   void _onButtonPressed(String text) {
     if (text == 'Start Training') {
@@ -116,11 +121,11 @@ Widget _buildSelectionCard() {
           'Which arm is the sleeve currently on?',
           _buildArmSelection(),
         ),
-        const SizedBox(height: 24),
-        _buildQuestion(
-          'Please select how many shots you will be taking during the training session',
-          _buildShotSelection(),
-        ),
+        //const SizedBox(height: 24), SLIDER UI
+        //_buildQuestion(
+          //'Please select how many shots you will be taking during the training session',
+          //_buildShotSelection(),
+        //),
       ],
     ),
   );
@@ -189,6 +194,7 @@ Widget _buildQuestion(String question, Widget child) {
     );
   }
 
+/* slider widget
  Widget _buildShotSelection() {
     return Column(
       children: [
@@ -219,6 +225,7 @@ Widget _buildQuestion(String question, Widget child) {
       ],
     );
   }
+*/
 
 Widget _buildFinalButtons() {
   return Row(
@@ -240,7 +247,13 @@ Widget _buildRoundedButton(String text, Color bgColor, Color textColor) {
         });
       } else if (text == 'Start Training') {
         Navigator.push(
-          context, MaterialPageRoute(builder: (context) => Calibration()));
+          context, 
+          MaterialPageRoute(
+            builder: (context) => TrainingInProgress(
+              bleService: bleService
+            )
+          )
+        );
       }
     },
     child: Container(
