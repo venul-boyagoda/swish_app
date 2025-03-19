@@ -96,11 +96,12 @@ final List<ShotData> _shotData = [
   // Global key for detecting taps outside of dropdown
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  @override
-  void initState() {
-    super.initState();
-    _currentShotIndex = widget.initialShotIndex.clamp(0, _shotData.length - 1);
-  }
+@override
+void initState() {
+  super.initState();
+  _currentShotIndex = widget.initialShotIndex.clamp(0, _shotData.length - 1);
+}
+
 
   void _toggleDropdown() {
     setState(() {

@@ -719,12 +719,17 @@ static Widget _buildShotDetail(String label, String value, Color labelColor) {
 static Widget _buildGridItem(BuildContext context, int index, Color color) {
   return GestureDetector(
     onTap: () {
-      print("Tapped on Shot ${index + 1}"); // Debugging
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SymposiumSummaryIndividualScreen(initialShotIndex: index),
+        ),
+      );
     },
     child: MouseRegion(
       cursor: SystemMouseCursors.click, // Show hand cursor on hover
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150), // Smooth animation
+        duration: const Duration(milliseconds: 150),
         curve: Curves.easeInOut,
         decoration: BoxDecoration(
           color: color, // ✅ Solid background color instead of gradient
@@ -742,7 +747,9 @@ static Widget _buildGridItem(BuildContext context, int index, Color color) {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => SymposiumSummaryIndividualScreen()),
+              MaterialPageRoute(
+                builder: (context) => SymposiumSummaryIndividualScreen(initialShotIndex: index),
+              ),
             );
           },
           child: Center(
