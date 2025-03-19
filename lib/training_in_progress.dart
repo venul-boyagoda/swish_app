@@ -42,12 +42,11 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     _waitForStream();
   }
 
-  Future<void> _lockOrientationToLandscape() async {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-  }
+Future<void> _lockOrientationToLandscape() async {
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeRight, // Keep it to one orientation for consistency
+  ]);
+}
 
   @override
   void dispose() {
@@ -110,18 +109,26 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   _cameraController = CameraController(
     cameras!.firstWhere((camera) => camera.lensDirection == CameraLensDirection.back),
     ResolutionPreset.medium,
+    enableAudio: true,
   );
+  
   await _cameraController!.initialize();
 
   // Set video start time here (as early as possible)
   video_start_time = DateTime.now().millisecondsSinceEpoch / 1000.0;
 
+  // Important: Set the device orientation BEFORE locking the camera orientation
+  // This ensures the camera's sensor orientation is aligned with the UI
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeRight,
+  ]);
+  
+  // Lock the capture orientation to match the device orientation
+  await _cameraController!.lockCaptureOrientation(DeviceOrientation.landscapeRight);
+  
   if (mounted) {
     setState(() {});
   }
-
-  // Lock the capture orientation to match the device orientation
-  await _cameraController!.lockCaptureOrientation(DeviceOrientation.landscapeRight);
 
   // Start recording right after initializing
   _startRecording();
@@ -292,22 +299,40 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   }
 
   Widget _buildCameraView() {
+  if (_cameraController == null || !_cameraController!.value.isInitialized) {
+    return Container(
+      width: double.infinity,
+      height: 250,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Color(0xFF397AC5), width: 4),
+      ),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  // Get the screen size to maintain proper aspect ratio
+  final size = MediaQuery.of(context).size;
+  
+  // Calculate the proper width/height to maintain aspect ratio
+  // For landscape recording, we need to swap the aspect ratio
+  final double aspectRatio = 1 / _cameraController!.value.aspectRatio;
+  
+  // Calculate container dimensions that maintain aspect ratio
+  final double containerWidth = size.width - 48; // Account for padding
+  final double containerHeight = containerWidth / aspectRatio;
+  
   return Container(
-    width: double.infinity, // Use full width available
-    height: 250, // Adjust height as needed
+    width: containerWidth,
+    height: containerHeight,
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(12),
       border: Border.all(color: Color(0xFF397AC5), width: 4),
     ),
-    child: _cameraController != null && _cameraController!.value.isInitialized
-      ? ClipRRect(
-          borderRadius: BorderRadius.circular(8), // Slightly smaller than container border
-          child: AspectRatio(
-            aspectRatio: _cameraController!.value.aspectRatio,
-            child: CameraPreview(_cameraController!),
-          ),
-        )
-      : Center(child: CircularProgressIndicator()),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: CameraPreview(_cameraController!),
+    ),
   );
 }
 
