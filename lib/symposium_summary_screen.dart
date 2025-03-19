@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
+import 'package:swish_app/backend/shot_data.dart';
 import 'package:swish_app/home_screen.dart';
 import 'package:swish_app/individual_summary.dart';
 import 'package:video_player/video_player.dart';
 import 'dart:io';
+
+import 'backend/score_calculator.dart';
 
 class SymposiumSummaryScreen extends StatelessWidget {
   final String? videoPath;
@@ -247,7 +250,7 @@ Widget build(BuildContext context) {
       ),
       onPressed: () {
         Navigator.push(
-          context, 
+          context,
           MaterialPageRoute(builder: (context) => HomeScreen()),
         );
       },
@@ -349,71 +352,116 @@ Widget _buildSummaryFrame(BuildContext context) {
   );
 }
 
-Widget _buildShotScore(BuildContext context) {
-  const double shotScore = 84;
-  Color progressColor = shotScore > 80
-      ? const Color(0xFF41AC20)
-      : (shotScore >= 50 ? const Color(0xFFFFC107) : const Color(0xFFC92121));
 
-  return Column( // ✅ Remove extra wrapping Container
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      // Title + Info Button
-      GestureDetector(
-        onTap: () => _showScorePopup(context), // ✅ Tap to open popup
-        child: Row(
-          children: [
-            const Text(
-              'Overall Session Score:',
-              style: TextStyle(
+  Widget _buildShotScore(BuildContext context) {
+    final shot = ShotData(
+      success: true,
+      release_angle: 36.7,
+      elbow_follow: 175,
+      elbow_set: 103,
+      knee_set: 133,
+    );
+
+    // Shot 2
+    final shot2 = ShotData(
+      success: false,
+      release_angle: 36.3,
+      elbow_follow: 175,
+      elbow_set: 107,
+      knee_set: 136,
+    );
+
+// Shot 3
+    final shot3 = ShotData(
+      success: false,
+      release_angle: 35.4,
+      elbow_follow: 89,
+      elbow_set: 115,
+      knee_set: 148,
+    );
+
+    final double shotScore = SummaryScoreCalculator.calculateShotScore(shot3);
+    // final double shotScore = SummaryScoreCalculator.calculateShotScore();
+
+    //final double shotScore = 30;
+
+    // Multi-stop gradient colors
+    const red = Color(0xFFE53935);        // Soft red
+    const orange = Color(0xFFFF7043);     // Soft orange
+    const yellow = Color(0xFFFFD740);     // Warm yellow
+    const lightGreen = Color(0xFF9CCC65); // Light green
+    const green = Color(0xFF43A047);      // Deep green
+
+    // Normalize the score (30 to 100 mapped to 0.0 - 1.0)
+    double normalized = ((shotScore - 30) / (100 - 30)).clamp(0.0, 1.0);
+
+    // Smooth color blending
+    Color progressColor;
+    if (normalized < 0.25) {
+      progressColor = Color.lerp(red, orange, normalized * 4)!;
+    } else if (normalized < 0.5) {
+      progressColor = Color.lerp(orange, yellow, (normalized - 0.25) * 4)!;
+    } else if (normalized < 0.75) {
+      progressColor = Color.lerp(yellow, lightGreen, (normalized - 0.5) * 4)!;
+    } else {
+      progressColor = Color.lerp(lightGreen, green, (normalized - 0.75) * 4)!;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: () => _showScorePopup(context),
+          child: Row(
+            children: [
+              const Text(
+                'Overall Session Score:',
+                style: TextStyle(
+                  color: Color(0xFF397AC5),
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.info_outline,
+                size: 24,
                 color: Color(0xFF397AC5),
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(
-              Icons.info_outline,
-              size: 24,
-              color: Color(0xFF397AC5),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-
-      const SizedBox(height: 24),
-
-      // Circular Progress Indicator
-      Center(
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: 150,
-              height: 150,
-              child: CircularProgressIndicator(
-                value: shotScore / 100,
-                strokeWidth: 24,
-                backgroundColor: Colors.grey.shade200,
-                valueColor: AlwaysStoppedAnimation(progressColor),
+        const SizedBox(height: 24),
+        Center(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 150,
+                height: 150,
+                child: CircularProgressIndicator(
+                  value: shotScore / 100,
+                  strokeWidth: 24,
+                  backgroundColor: Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation(progressColor),
+                ),
               ),
-            ),
-            Text(
-              '${shotScore.toStringAsFixed(0)}%',
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 48,
-                fontWeight: FontWeight.w400,
+              Text(
+                '${shotScore.toStringAsFixed(0)}%',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 48,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
-Widget _buildVideoReplaySection(BuildContext context) {
+  Widget _buildVideoReplaySection(BuildContext context) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -636,7 +684,7 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
                 child: VideoPlayer(_controller),
               )
             : const SizedBox(
-                height: 200, 
+                height: 200,
                 child: Center(child: CircularProgressIndicator())
               ),
 
@@ -673,4 +721,6 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
     );
   }
 }
+
+
 

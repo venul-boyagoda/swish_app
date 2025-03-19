@@ -16,7 +16,4 @@ class BackendData {
 
   // Power Calculation
   static double power = 4; // Example computed value
-
-  // New static variable to store the shot made status
-  static bool shotMade = false;
 }

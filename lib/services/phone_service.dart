@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:io';
-import 'package:swish_app/backend/backend_variables.dart';
+import 'package:swish_app/backend/imu_data.dart';
+import 'package:swish_app/backend/shot_data.dart';
+
+ShotData? latestShot;
 
 Future<void> uploadVideo(File videoFile) async {
   var request = http.MultipartRequest(
@@ -16,8 +19,11 @@ Future<void> uploadVideo(File videoFile) async {
   if (response.statusCode == 200) {
     var responseData = await response.stream.bytesToString();
     var jsonResponse = jsonDecode(responseData);
-    BackendData.shotMade = jsonResponse['shot_made'];
-    print("Shot Made: ${jsonResponse['shot_made']}");
+
+    // ✅ Create instance from json
+    latestShot = ShotData.fromJson(jsonResponse);
+
+    print("Shot Made: ${latestShot!.success}");
   } else {
     print("Error uploading video: ${response.statusCode}");
   }
