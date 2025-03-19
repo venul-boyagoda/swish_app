@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:swish_app/calibration.dart';
+import 'package:swish_app/symposium_summary_general.dart';
 import 'package:swish_app/training_in_progress.dart';
+import 'package:swish_app/symposium_summary_general.dart';
 import 'package:swish_app/services/phone_service.dart';
 import 'package:swish_app/services/ble_service.dart';
 
@@ -19,53 +21,61 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _selectedArm; // Track selected button
   //double _shotCount = 5; // Slider initial value
 
-  void _onButtonPressed(String text) {
-    if (text == 'Start Training') {
-      setState(() {
-        _showOverlay = true;
-      });
-    }
-    // You could add actions for other buttons here.
-  }
-
-  Widget _buildButton(String text) {
-    return GestureDetector(
-      onTap: () => _onButtonPressed(text),
-      child: Container(
-        width: 315,
-        height: 88,
-        padding: const EdgeInsets.all(16),
-        decoration: ShapeDecoration(
-          color: const Color(0xFF397AC5),
-          shape: RoundedRectangleBorder(
-            side: BorderSide(width: 1, color: const Color(0x33397AC5)),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          shadows: const [
-            BoxShadow(
-              color: Color(0x3F000000),
-              blurRadius: 4,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontFamily: 'Open Sans',
-              fontWeight: FontWeight.w700,
-              height: 1.50,
-              letterSpacing: 0.50,
-            ),
-          ),
-        ),
+void _onButtonPressed(String text) {
+  if (text == 'Start Training') {
+    setState(() {
+      _showOverlay = true;
+    });
+  } else if (text == 'Symposium Sample Screens') {
+    // Navigate to the pre-existing screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SymposiumSummaryGeneralScreen(), // Replace with actual screen class
       ),
     );
   }
+}
+
+
+Widget _buildButton(String text) {
+  return GestureDetector(
+    onTap: () => _onButtonPressed(text), // ✅ Calls the updated function
+    child: Container(
+      width: 315,
+      height: 88,
+      padding: const EdgeInsets.all(16),
+      decoration: ShapeDecoration(
+        color: const Color(0xFF397AC5),
+        shape: RoundedRectangleBorder(
+          side: BorderSide(width: 1, color: const Color(0x33397AC5)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        shadows: const [
+          BoxShadow(
+            color: Color(0x3F000000),
+            blurRadius: 4,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontFamily: 'Open Sans',
+            fontWeight: FontWeight.w700,
+            height: 1.50,
+            letterSpacing: 0.50,
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
   /// Popup menu
 Widget _buildPopupContent() {
@@ -375,7 +385,7 @@ Widget _buildFinalButtons() {
                         children: [
                           _buildButton('Start Training'),
                           const SizedBox(height: 24),
-                          _buildButton('Training History'),
+                          _buildButton('Symposium Sample Screens'),
                         ],
                       ),
                     ),
