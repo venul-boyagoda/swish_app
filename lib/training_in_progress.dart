@@ -9,6 +9,8 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:swish_app/services/phone_service.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'dart:math' as math;
+
 
 class TrainingInProgress extends StatefulWidget {
   final BleService bleService;
@@ -32,19 +34,29 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   StreamSubscription<List<int>>? imuDataSubscription;
   List<Map<String, dynamic>> decodedMatrices = [];
 
-  @override
-  void initState() {
-    super.initState();
-    _lockOrientationToLandscape();
+@override
+void initState() {
+  super.initState();
+  _lockOrientationToLandscape();
+  // Add a short delay before initializing the camera
+  // This gives time for the orientation change to take effect
+  Future.delayed(Duration(milliseconds: 300), () {
     _initializeCamera();
     _startTimer();
     widget.bleService.connectToIMU();
     _waitForStream();
-  }
+  });
+}
 
 Future<void> _lockOrientationToLandscape() async {
   await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.landscapeRight, // Keep it to one orientation for consistency
+    DeviceOrientation.landscapeRight,
+    DeviceOrientation.landscapeLeft, // Allow both landscape orientations
+  ]);
+  
+  // Set the UI to landscape right as the default
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeRight,
   ]);
 }
 
@@ -104,33 +116,33 @@ Future<void> _lockOrientationToLandscape() async {
     };
   }
 
-  Future<void> _initializeCamera() async {
+ Future<void> _initializeCamera() async {
   cameras = await availableCameras();
+  
+  // Get the back camera
+  final backCamera = cameras!.firstWhere(
+    (camera) => camera.lensDirection == CameraLensDirection.back,
+    orElse: () => cameras!.first
+  );
+  
   _cameraController = CameraController(
-    cameras!.firstWhere((camera) => camera.lensDirection == CameraLensDirection.back),
+    backCamera,
     ResolutionPreset.medium,
     enableAudio: true,
+    imageFormatGroup: ImageFormatGroup.jpeg,
   );
   
   await _cameraController!.initialize();
 
-  // Set video start time here (as early as possible)
+  // Set video start time here
   video_start_time = DateTime.now().millisecondsSinceEpoch / 1000.0;
 
-  // Important: Set the device orientation BEFORE locking the camera orientation
-  // This ensures the camera's sensor orientation is aligned with the UI
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.landscapeRight,
-  ]);
-  
-  // Lock the capture orientation to match the device orientation
-  await _cameraController!.lockCaptureOrientation(DeviceOrientation.landscapeRight);
-  
+  // Don't lock orientation here - we'll handle rotation in the UI
   if (mounted) {
     setState(() {});
   }
 
-  // Start recording right after initializing
+  // Start recording
   _startRecording();
 }
 
@@ -150,18 +162,38 @@ Future<void> _lockOrientationToLandscape() async {
 
   double? video_start_time;
 
-  Future<void> _startRecording() async {
-    if (_cameraController != null && _cameraController!.value.isInitialized) {
+Future<void> _startRecording() async {
+  if (_cameraController != null && _cameraController!.value.isInitialized) {
+    try {
       final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
       _videoPath = '${directory.path}/trainingvideo$timestamp.mp4';
 
+      // For newer camera package versions that support recording options:
+      /*
+      final videoOptions = VideoRecordingOptions(
+        quality: ResolutionPreset.medium,
+        fileFormat: VideoFileFormat.mp4,
+      );
+      await _cameraController!.startVideoRecording(options: videoOptions);
+      */
+      
+      // For older camera package versions:
       await _cameraController!.startVideoRecording();
+      
       setState(() {
         _isRecording = true;
       });
+      
+      print("Video recording started");
+    } catch (e) {
+      print("Error starting video recording: $e");
     }
+  } else {
+    print("Camera controller not initialized");
   }
+}
+
 
   Future<String?> _stopRecording() async {
     if (_cameraController != null && _cameraController!.value.isRecordingVideo) {
@@ -311,16 +343,22 @@ Future<void> _lockOrientationToLandscape() async {
     );
   }
 
-  // Get the screen size to maintain proper aspect ratio
+  // Get screen size
   final size = MediaQuery.of(context).size;
   
-  // Calculate the proper width/height to maintain aspect ratio
-  // For landscape recording, we need to swap the aspect ratio
-  final double aspectRatio = 1 / _cameraController!.value.aspectRatio;
+  // Calculate the rotation needed based on device orientation
+  // This is the key to fixing the upside-down issue
+  final deviceOrientation = MediaQuery.of(context).orientation;
+  final isLandscape = deviceOrientation == Orientation.landscape;
   
-  // Calculate container dimensions that maintain aspect ratio
-  final double containerWidth = size.width - 48; // Account for padding
-  final double containerHeight = containerWidth / aspectRatio;
+  // For most devices in landscape mode
+  final rotationAngle = isLandscape ? 0.0 : -math.pi / 2;
+  
+  // Calculate container dimensions for proper aspect ratio
+  final containerWidth = size.width - 48; // Account for padding
+  final containerHeight = isLandscape 
+      ? containerWidth / (16/9) // Use 16:9 aspect ratio for landscape
+      : containerWidth * (16/9);
   
   return Container(
     width: containerWidth,
@@ -331,11 +369,13 @@ Future<void> _lockOrientationToLandscape() async {
     ),
     child: ClipRRect(
       borderRadius: BorderRadius.circular(8),
-      child: CameraPreview(_cameraController!),
+      child: Transform.rotate(
+        angle: rotationAngle,
+        child: CameraPreview(_cameraController!),
+      ),
     ),
   );
 }
-
 
   Widget _buildEndTrainingButton() {
     return GestureDetector(
