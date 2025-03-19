@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 import 'package:swish_app/backend/shot_data.dart';
 import 'package:swish_app/home_screen.dart';
 import 'package:swish_app/individual_summary.dart';
+import 'package:swish_app/services/phone_service.dart';
 import 'package:video_player/video_player.dart';
 import 'dart:io';
 
@@ -380,7 +381,7 @@ Widget _buildSummaryFrame(BuildContext context) {
       knee_set: 148,
     );
 
-    final double shotScore = SummaryScoreCalculator.calculateShotScore(shot3);
+    final double shotScore = SummaryScoreCalculator.calculateShotScore(shot);
     // final double shotScore = SummaryScoreCalculator.calculateShotScore();
 
     //final double shotScore = 30;

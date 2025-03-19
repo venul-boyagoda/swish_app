@@ -148,7 +148,7 @@ class PhoneSetup extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => TrainingInProgress(bleService: bleService),
+                builder: (context) => TrainingInProgress(bleService: bleService, selectedArm: "Right"),
               ),
             );
           } else {

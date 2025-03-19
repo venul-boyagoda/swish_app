@@ -11,8 +11,9 @@ import 'package:swish_app/services/phone_service.dart';
 
 class TrainingInProgress extends StatefulWidget {
   final BleService bleService;
+  final String selectedArm;
 
-  TrainingInProgress({required this.bleService});
+  TrainingInProgress({required this.bleService, required this.selectedArm});
 
   @override
   _TrainingInProgressState createState() => _TrainingInProgressState();
@@ -28,7 +29,7 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
 
   List<int> imuData = [];
   StreamSubscription<List<int>>? imuDataSubscription;
-  List<List<List<double>>> decodedMatrices = [];
+  List<Map<String, dynamic>> decodedMatrices = [];
 
   @override
   void initState() {
@@ -45,8 +46,11 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     }
 
     imuDataSubscription = widget.bleService.imuData!.listen((data) {
-      List<List<double>> matrix = decodeIMUDataToMatrix(data);
-      decodedMatrices.add(matrix);
+      final timestamp = DateTime.now().millisecondsSinceEpoch / 1000.0;
+
+      Map<String, dynamic> decodedPacket = decodeExtendedIMUData(data, timestamp);
+      decodedMatrices.add(decodedPacket);
+
       setState(() {
         imuData = data;
       });
@@ -57,20 +61,26 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     print("✅ Subscribed to IMU stream!");
   }
 
-  List<List<double>> decodeIMUDataToMatrix(List<int> rawData) {
-    List<double> matrixValues = [];
-    for (int i = 0; i < rawData.length; i += 4) {
-      if (i + 4 <= rawData.length) {
-        ByteData bytes = ByteData.sublistView(Uint8List.fromList(rawData.sublist(i, i + 4)));
-        matrixValues.add(bytes.getFloat32(0, Endian.little));
+  Map<String, dynamic> decodeExtendedIMUData(List<int> rawData, double timestamp) {
+    List<double> extractFloats(List<int> slice) {
+      List<double> values = [];
+      for (int i = 0; i < slice.length; i += 4) {
+        ByteData bytes = ByteData.sublistView(Uint8List.fromList(slice.sublist(i, i + 4)));
+        values.add(bytes.getFloat32(0, Endian.little));
       }
+      return values;
     }
-    return [
-      matrixValues.sublist(0, 3),
-      matrixValues.sublist(3, 6),
-      matrixValues.sublist(6, 9),
-    ];
+
+    return {
+      'timestamp': timestamp,
+      'bno_matrix': extractFloats(rawData.sublist(0, 36)),
+      'bmi_matrix': extractFloats(rawData.sublist(36, 72)),
+      'bno_gyro': extractFloats(rawData.sublist(72, 84)),
+      'bno_accel': extractFloats(rawData.sublist(84, 96)),
+      'bmi_gyro': extractFloats(rawData.sublist(96, 108)),
+    };
   }
+
 
   @override
   void dispose() {
@@ -107,17 +117,24 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     return '${minutes}m ${secs}s';
   }
 
+  double? video_start_time;
+
   Future<void> _startRecording() async {
     if (_cameraController != null && _cameraController!.value.isInitialized) {
       final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
       _videoPath = '${directory.path}/training_video_$timestamp.mp4';
+
+      // Save video start time (in seconds)
+      video_start_time = DateTime.now().millisecondsSinceEpoch / 1000.0;
+
       await _cameraController!.startVideoRecording();
       setState(() {
         _isRecording = true;
       });
     }
   }
+
 
   Future<String?> _stopRecording() async {
     if (_cameraController != null && _cameraController!.value.isRecordingVideo) {
@@ -227,7 +244,7 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   }
 
   Widget _buildDebugPanel() {
-    List<List<double>>? latestMatrix = decodedMatrices.isNotEmpty ? decodedMatrices.last : null;
+    Map<String, dynamic>? latestPacket = decodedMatrices.isNotEmpty ? decodedMatrices.last : null;
 
     return Card(
       color: Colors.white,
@@ -243,18 +260,23 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
             const SizedBox(height: 8),
             Text("Raw IMU Data: ${imuData.isNotEmpty ? imuData.toString() : "Waiting..."}"),
             const SizedBox(height: 8),
-            Text("Decoded Matrix:"),
-            if (latestMatrix != null)
-              ...latestMatrix.map((row) => Text(row.toString())),
-            if (latestMatrix == null)
-              Text("Waiting for matrix..."),
+            if (latestPacket != null) ...[
+              Text("Timestamp: ${latestPacket['timestamp']}"),
+              Text("BNO Matrix: ${latestPacket['bno_matrix']}"),
+              Text("BMI Matrix: ${latestPacket['bmi_matrix']}"),
+              Text("BNO Gyro: ${latestPacket['bno_gyro']}"),
+              Text("BNO Accel: ${latestPacket['bno_accel']}"),
+              Text("BMI Gyro: ${latestPacket['bmi_gyro']}"),
+            ] else
+              Text("Waiting for packet..."),
           ],
         ),
       ),
     );
   }
 
-Widget _buildCameraView() {
+
+  Widget _buildCameraView() {
   return Container(
     width: 299,
     height: 475,
@@ -274,19 +296,35 @@ Widget _buildCameraView() {
 
   Widget _buildEndTrainingButton() {
     return GestureDetector(
+      // Inside _buildEndTrainingButton()
       onTap: () async {
-        await uploadIMUData(decodedMatrices); // ONLY sending matrix data
         await widget.bleService.disconnect();
         final String? savedVideoPath = await _stopRecording();
+
         if (savedVideoPath != null) {
+          // Start uploadTrainingSession but don't await it
+          final Future<void> uploadFuture = uploadTrainingSession(
+            videoFile: File(savedVideoPath),
+            imuPackets: decodedMatrices,
+            handedness: widget.selectedArm.toLowerCase(),
+            videoStartTime: video_start_time!,
+          );
+
+
+          // Pass the uploadFuture to SessionComplete
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => SessionComplete(videoPath: savedVideoPath),
+              builder: (context) => SessionComplete(
+                videoPath: savedVideoPath,
+                uploadFuture: uploadFuture,
+              ),
             ),
           );
         }
       },
+
+
       child: Container(
         width: 200,
         height: 50,

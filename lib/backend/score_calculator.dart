@@ -1,6 +1,7 @@
 import 'package:swish_app/backend/shot_data.dart';
 
 class SummaryScoreCalculator {
+  // Ideal values
   static const double idealReleaseAngle = 50.9;
   static const double releaseAngleMin = 30.1;
   static const double releaseAngleMax = 72.2;
@@ -17,80 +18,51 @@ class SummaryScoreCalculator {
   static const double kneeSetMin = 122.1;
   static const double kneeSetMax = 143.9;
 
+  // Weights
+  static const double accuracyWeight = 0.30; // 50% Accuracy
+  static const double formWeight = 0.70; // 50% Form/Coordination
+
+  static const double successSubWeight = 0.15;
+  static const double releaseAngleSubWeight = 0.85;
+
+  static const double elbowFollowWeight = 0.60;
+  static const double elbowSetWeight = 0.25; // 33% of Form
+  static const double kneeSetWeight = 0.15; // 33% of Form
+
   static double calculateShotScore(ShotData shot) {
-    double score = 0;
+    double totalScore = 100;
 
-    const double successWeight = 30.0;
-    const double releaseWeight = 20.0;
-    const double elbowFollowWeight = 20.0;
-    const double elbowSetWeight = 15.0;
-    const double kneeSetWeight = 15.0;
+    // --------------------------
+    // Accuracy Component (50%)
+    // --------------------------
+    double accuracyPenalty = 0;
 
-    if (shot.success) {
-      score += successWeight;
-    }
+    // 1. Shot Success (YES or NO)
+    accuracyPenalty += shot.success ? 0 : (successSubWeight * accuracyWeight) * 100;
 
-    if (_inRange(shot.release_angle, releaseAngleMin, releaseAngleMax)) {
-      score += releaseWeight;
-    } else {
-      double partial = _partialCredit(
-        shot.release_angle,
-        idealReleaseAngle,
-        releaseAngleMin,
-        releaseAngleMax,
-      );
-      score += releaseWeight * partial;
-    }
+    // 2. Release Angle
+    double releaseError = (shot.release_angle - idealReleaseAngle).abs() / idealReleaseAngle;
+    accuracyPenalty += releaseError * (releaseAngleSubWeight * accuracyWeight) * 100;
 
-    score += _applyPenalty(
-      actual: shot.elbow_follow,
-      ideal: idealElbowFollow,
-      min: elbowFollowMin,
-      max: elbowFollowMax,
-      maxWeight: elbowFollowWeight,
-    );
+    // --------------------------
+    // Form/Coordination Component (50%)
+    // --------------------------
+    double formPenalty = 0;
 
-    score += _applyPenalty(
-      actual: shot.elbow_set,
-      ideal: idealElbowSet,
-      min: elbowSetMin,
-      max: elbowSetMax,
-      maxWeight: elbowSetWeight,
-    );
+    // 3. Elbow Follow Through
+    double elbowFollowError = (shot.elbow_follow - idealElbowFollow).abs() / idealElbowFollow;
+    formPenalty += elbowFollowError * elbowFollowWeight * formWeight * 100;
 
-    score += _applyPenalty(
-      actual: shot.knee_set,
-      ideal: idealKneeSet,
-      min: kneeSetMin,
-      max: kneeSetMax,
-      maxWeight: kneeSetWeight,
-    );
+    // 4. Elbow Set
+    double elbowSetError = (shot.elbow_set - idealElbowSet).abs() / idealElbowSet;
+    formPenalty += elbowSetError * elbowSetWeight * formWeight * 100;
 
-    return score.clamp(0, 100);
-  }
+    // 5. Knee Set
+    double kneeSetError = (shot.knee_set - idealKneeSet).abs() / idealKneeSet;
+    formPenalty += kneeSetError * kneeSetWeight * formWeight * 100;
 
-  static bool _inRange(double value, double min, double max) {
-    return value >= min && value <= max;
-  }
-
-  static double _partialCredit(double actual, double ideal, double min, double max) {
-    double totalRange = (max - min) / 2;
-    double diff = (actual - ideal).abs();
-    return (1 - (diff / totalRange)).clamp(0.0, 1.0);
-  }
-
-  static double _applyPenalty({
-    required double actual,
-    required double ideal,
-    required double min,
-    required double max,
-    required double maxWeight,
-  }) {
-    double interval = (max - min) / 30;
-    double diff = (actual - ideal).abs();
-    int zone = (diff / interval).ceil();
-    double penaltyRatio = zone / 15.0;
-    double credit = (1 - penaltyRatio).clamp(0.0, 1.0);
-    return maxWeight * credit;
+    // Final score after deductions
+    totalScore -= (accuracyPenalty + formPenalty);
+    return totalScore.clamp(0, 100);
   }
 }

@@ -247,23 +247,16 @@ Widget _buildFinalButtons() {
             _showOverlay = false;
           });
         } else if (text == 'Start Training') {
-          // Upload arm info but don't block navigation on failure
-          if (_selectedArm != null) {
-            try {
-              await uploadArmInfo(_selectedArm!);
-              print("Uploading arm info");
-            } catch (e) {
-              print("⚠️ Failed to upload arm info, but continuing: $e");
-            }
-          }
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => TrainingInProgress(
                 bleService: bleService,
+                selectedArm: _selectedArm!.toLowerCase(), // Pass the selected arm
               ),
             ),
           );
+
         }
       },
       child: Container(

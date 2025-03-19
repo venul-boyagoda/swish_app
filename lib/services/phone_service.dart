@@ -6,47 +6,27 @@ import 'package:swish_app/backend/shot_data.dart';
 
 ShotData? latestShot;
 
-Future<void> uploadVideo(File videoFile) async {
+Future<void> uploadTrainingSession({
+  required File videoFile,
+  required List<Map<String, dynamic>> imuPackets,
+  required String handedness,
+  required double videoStartTime,
+}) async {
   var request = http.MultipartRequest(
     'POST',
     Uri.parse('http://172.20.10.8:8000/upload/'),
   );
 
+  // Attach video file
   request.files.add(await http.MultipartFile.fromPath('file', videoFile.path));
 
-  var response = await request.send();
+  // Add handedness as a form field
+  request.fields['handedness'] = handedness;
 
-  if (response.statusCode == 200) {
-    var responseData = await response.stream.bytesToString();
-    var jsonResponse = jsonDecode(responseData);
+  // Add IMU data as JSON stringified form field
+  request.fields['imu_data'] = jsonEncode(imuPackets);
 
-    // ✅ Create instance from json
-    latestShot = ShotData.fromJson(jsonResponse);
-
-    print("Shot Made: ${latestShot!.success}");
-  } else {
-    print("Error uploading video: ${response.statusCode}");
-  }
-}
-
-Future<void> uploadIMUData(List<List<List<double>>> matrixData) async {
-  Map<String, dynamic> data = {
-    'matrices': matrixData.map((matrix) {
-      return {
-        'row1': matrix[0],
-        'row2': matrix[1],
-        'row3': matrix[2],
-      };
-    }).toList(),
-  };
-
-  var request = http.MultipartRequest(
-    'POST',
-    Uri.parse('http://172.20.10.8:8000/uploadIMUData/'),
-  );
-
-  request.headers.addAll({'Content-Type': 'application/json'});
-  request.fields['data'] = jsonEncode(data);
+  request.fields['video_start_time'] = videoStartTime.toString();
 
   try {
     var response = await request.send();
@@ -54,33 +34,15 @@ Future<void> uploadIMUData(List<List<List<double>>> matrixData) async {
     if (response.statusCode == 200) {
       var responseData = await response.stream.bytesToString();
       var jsonResponse = jsonDecode(responseData);
-      BackendData.imu1Velocity = jsonResponse['imu1_velocity'];
-      BackendData.imu2Velocity = jsonResponse['imu2_velocity'];
-      print("IMU 1 Velocity: ${jsonResponse['imu1_velocity']}");
-      print("IMU 2 Velocity: ${jsonResponse['imu2_velocity']}");
+
+      // ✅ Create instance from json
+      latestShot = ShotData.fromJson(jsonResponse);
+
+      print("Shot Made: \${latestShot!.success}");
     } else {
-      print("Error uploading IMU data: ${response.statusCode}");
+      print("Error uploading session: \${response.statusCode}");
     }
   } catch (e) {
-    print("Exception: $e");
-  }
-}
-
-
-Future<void> uploadArmInfo(String selectedArm) async {
-  Map<String, dynamic> data = {
-    'arm': selectedArm,
-  };
-
-  var response = await http.post(
-    Uri.parse('http://172.20.10.8:8000/uploadArm/'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode(data),
-  );
-
-  if (response.statusCode == 200) {
-    print("Arm info uploaded successfully: $selectedArm");
-  } else {
-    print("Error uploading arm info: ${response.statusCode}");
+    print("Exception: \$e");
   }
 }
