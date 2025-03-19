@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:swish_app/calibration.dart';
 import 'package:swish_app/symposium_summary_general.dart';
 import 'package:swish_app/training_in_progress.dart';
-import 'package:swish_app/symposium_summary_general.dart';
 import 'package:swish_app/services/phone_service.dart';
 import 'package:swish_app/services/ble_service.dart';
 
@@ -239,36 +238,46 @@ Widget _buildQuestion(String question, Widget child) {
 */
 
 Widget _buildFinalButtons() {
+  // Determine if Start Training button should be enabled
+  bool isStartButtonEnabled = _selectedArm != null;
+  
   return Row(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      _buildRoundedButton('Cancel', Colors.white, Color(0xFF397AC5)),
+      _buildRoundedButton('Cancel', Colors.white, Color(0xFF397AC5), true),
       const SizedBox(width: 8), // Adjust spacing to fit within layout
-      _buildRoundedButton('Start Training', Color(0xFF397AC5), Colors.white),
+      _buildRoundedButton(
+        'Start Training', 
+        isStartButtonEnabled ? Color(0xFF397AC5) : Colors.grey, 
+        Colors.white,
+        isStartButtonEnabled
+      ),
     ],
   );
 }
 
-  Widget _buildRoundedButton(String text, Color bgColor, Color textColor) {
+  Widget _buildRoundedButton(String text, Color bgColor, Color textColor, bool isEnabled) {
     return GestureDetector(
-      onTap: () async {
+      onTap: isEnabled ? () async {
         if (text == 'Cancel') {
           setState(() {
             _showOverlay = false;
           });
         } else if (text == 'Start Training') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TrainingInProgress(
-                bleService: bleService,
-                selectedArm: _selectedArm!.toLowerCase(), // Pass the selected arm
+          // Only proceed if an arm is selected
+          if (_selectedArm != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TrainingInProgress(
+                  bleService: bleService,
+                  selectedArm: _selectedArm!.toLowerCase(), // Pass the selected arm
+                ),
               ),
-            ),
-          );
-
+            );
+          }
         }
-      },
+      } : null, // Disable onTap if button is not enabled
       child: Container(
         width: 130,
         height: 45,
@@ -276,7 +285,7 @@ Widget _buildFinalButtons() {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(width: 1, color: Color(0xFF397AC5)),
+          border: Border.all(width: 1, color: isEnabled ? Color(0xFF397AC5) : Colors.grey),
         ),
         child: FittedBox(
           child: Text(

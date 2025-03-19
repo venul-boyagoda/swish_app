@@ -678,15 +678,28 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
     return Column(
       children: [
         const SizedBox(height: 24), // ✅ Ensures spacing before the video
-        _isInitialized
-            ? AspectRatio(
-                aspectRatio: _controller.value.aspectRatio,
-                child: VideoPlayer(_controller),
-              )
-            : const SizedBox(
-                height: 200,
-                child: Center(child: CircularProgressIndicator())
-              ),
+_isInitialized
+    ? Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Color(0xFF397AC5), width: 4),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8), // Slightly smaller to account for border
+          child: AspectRatio(
+            aspectRatio: _controller.value.aspectRatio,
+            child: VideoPlayer(_controller),
+          ),
+        ),
+      )
+    : Container(
+        height: 200,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Color(0xFF397AC5), width: 4),
+        ),
+        child: const Center(child: CircularProgressIndicator())
+      ),
 
         // ✅ Play/Pause Button (Directly Below Video)
         const SizedBox(height: 64), // ✅ Small gap between video and button
