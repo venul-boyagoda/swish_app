@@ -502,8 +502,8 @@ void _showScorePopup(BuildContext context) {
           ),
           const SizedBox(height: 16),
           const Text(
-            'This number is calculated using a weighted average of your session accuracy, '
-            'the number of mistakes made, and your consistency. See your scores below:',
+            'This number is calculated using a weighted average of your session accuracy '
+            'and shooting form. See your scores below:',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.black,
@@ -512,13 +512,12 @@ void _showScorePopup(BuildContext context) {
           ),
           const SizedBox(height: 24),
 
-          // Sections for Accuracy, Form, and Consistency (Form is centered)
+          // Display Accuracy and Form scores only
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround, // ✅ Equal spacing
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly, // ✅ Even spacing
             children: [
               _buildScoreColumn('Accuracy', 88), // Example scores
-              _buildScoreColumn('Form', 65), // Centered
-              _buildScoreColumn('Consistency', 42),
+              _buildScoreColumn('Form', 65),
             ],
           ),
 
