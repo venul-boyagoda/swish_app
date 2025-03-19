@@ -106,25 +106,26 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   }
 
   Future<void> _initializeCamera() async {
-    cameras = await availableCameras();
-    _cameraController = CameraController(
-      cameras!.firstWhere((camera) => camera.lensDirection == CameraLensDirection.back),
-      ResolutionPreset.medium,
-    );
-    await _cameraController!.initialize();
+  cameras = await availableCameras();
+  _cameraController = CameraController(
+    cameras!.firstWhere((camera) => camera.lensDirection == CameraLensDirection.back),
+    ResolutionPreset.medium,
+  );
+  await _cameraController!.initialize();
 
-    // Set video start time here (as early as possible)
-    video_start_time = DateTime.now().millisecondsSinceEpoch / 1000.0;
+  // Set video start time here (as early as possible)
+  video_start_time = DateTime.now().millisecondsSinceEpoch / 1000.0;
 
-    if (mounted) {
-      setState(() {});
-    }
-
-    await _cameraController!.lockCaptureOrientation(DeviceOrientation.landscapeLeft);
-
-    // Start recording right after initializing
-    _startRecording();
+  if (mounted) {
+    setState(() {});
   }
+
+  // Lock the capture orientation to match the device orientation
+  await _cameraController!.lockCaptureOrientation(DeviceOrientation.landscapeRight);
+
+  // Start recording right after initializing
+  _startRecording();
+}
 
   void _startTimer() {
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
@@ -291,24 +292,24 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   }
 
   Widget _buildCameraView() {
-    return Container(
-      width: 475, // flipped width and height
-      height: 299,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Color(0xFF397AC5), width: 4),
-      ),
-      child: _cameraController != null && _cameraController!.value.isInitialized
-          ? ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Transform.rotate(
-          angle: -90 * 3.1416 / 180, // rotate the preview to landscape left
-          child: CameraPreview(_cameraController!),
-        ),
-      )
-          : Center(child: CircularProgressIndicator()),
-    );
-  }
+  return Container(
+    width: double.infinity, // Use full width available
+    height: 250, // Adjust height as needed
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Color(0xFF397AC5), width: 4),
+    ),
+    child: _cameraController != null && _cameraController!.value.isInitialized
+      ? ClipRRect(
+          borderRadius: BorderRadius.circular(8), // Slightly smaller than container border
+          child: AspectRatio(
+            aspectRatio: _cameraController!.value.aspectRatio,
+            child: CameraPreview(_cameraController!),
+          ),
+        )
+      : Center(child: CircularProgressIndicator()),
+  );
+}
 
 
   Widget _buildEndTrainingButton() {
