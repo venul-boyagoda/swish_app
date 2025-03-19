@@ -37,10 +37,12 @@ Future<void> uploadTrainingSession({
 
       // ✅ Create instance from json
       latestShot = ShotData.fromJson(jsonResponse);
+      ImuData.fromJson(jsonResponse);
 
-      print("Shot Made: \${latestShot!.success}");
+      print("Shot Made: ${latestShot!.success}");
+      print("Follow Accel: ${ImuData.follow_accel}");
     } else {
-      print("Error uploading session: \${response.statusCode}");
+      print("Error uploading session: ${response.statusCode}");
     }
   } catch (e) {
     print("Exception: \$e");

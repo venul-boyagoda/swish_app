@@ -8,6 +8,7 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:swish_app/services/phone_service.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class TrainingInProgress extends StatefulWidget {
   final BleService bleService;
@@ -34,10 +35,33 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
   @override
   void initState() {
     super.initState();
+    _lockOrientationToLandscape();
     _initializeCamera();
     _startTimer();
     widget.bleService.connectToIMU();
     _waitForStream();
+  }
+
+  Future<void> _lockOrientationToLandscape() async {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    _timer?.cancel();
+    imuDataSubscription?.cancel();
+    _resetOrientation();
+    super.dispose();
+  }
+
+  Future<void> _resetOrientation() async {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
   }
 
   void _waitForStream() async {
@@ -81,25 +105,24 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     };
   }
 
-
-  @override
-  void dispose() {
-    _cameraController?.dispose();
-    _timer?.cancel();
-    imuDataSubscription?.cancel();
-    super.dispose();
-  }
-
   Future<void> _initializeCamera() async {
     cameras = await availableCameras();
     _cameraController = CameraController(
-      cameras!.firstWhere((camera) => camera.lensDirection == CameraLensDirection.front),
+      cameras!.firstWhere((camera) => camera.lensDirection == CameraLensDirection.back),
       ResolutionPreset.medium,
     );
     await _cameraController!.initialize();
+
+    // Set video start time here (as early as possible)
+    video_start_time = DateTime.now().millisecondsSinceEpoch / 1000.0;
+
     if (mounted) {
       setState(() {});
     }
+
+    await _cameraController!.lockCaptureOrientation(DeviceOrientation.landscapeLeft);
+
+    // Start recording right after initializing
     _startRecording();
   }
 
@@ -123,10 +146,7 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
     if (_cameraController != null && _cameraController!.value.isInitialized) {
       final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      _videoPath = '${directory.path}/training_video_$timestamp.mp4';
-
-      // Save video start time (in seconds)
-      video_start_time = DateTime.now().millisecondsSinceEpoch / 1000.0;
+      _videoPath = '${directory.path}/trainingvideo$timestamp.mp4';
 
       await _cameraController!.startVideoRecording();
       setState(() {
@@ -134,7 +154,6 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
       });
     }
   }
-
 
   Future<String?> _stopRecording() async {
     if (_cameraController != null && _cameraController!.value.isRecordingVideo) {
@@ -161,11 +180,6 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-    ));
-
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -258,60 +272,57 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
             const SizedBox(height: 8),
             Text("BLE Status: ${widget.bleService.isConnected ? "Connected ✅" : "Connecting... ⏳"}"),
             const SizedBox(height: 8),
-            Text("Raw IMU Data: ${imuData.isNotEmpty ? imuData.toString() : "Waiting..."}"),
-            const SizedBox(height: 8),
-            if (latestPacket != null) ...[
-              Text("Timestamp: ${latestPacket['timestamp']}"),
-              Text("BNO Matrix: ${latestPacket['bno_matrix']}"),
-              Text("BMI Matrix: ${latestPacket['bmi_matrix']}"),
-              Text("BNO Gyro: ${latestPacket['bno_gyro']}"),
-              Text("BNO Accel: ${latestPacket['bno_accel']}"),
-              Text("BMI Gyro: ${latestPacket['bmi_gyro']}"),
-            ] else
-              Text("Waiting for packet..."),
-          ],
+            // Text("Raw IMU Data: ${imuData.isNotEmpty ? imuData.toString() : "Waiting..."}"),
+            // const SizedBox(height: 8),
+          //   if (latestPacket != null) ...[
+          //     Text("Timestamp: ${latestPacket['timestamp']}"),
+          //     Text("BNO Matrix: ${latestPacket['bno_matrix']}"),
+          //     Text("BMI Matrix: ${latestPacket['bmi_matrix']}"),
+          //     Text("BNO Gyro: ${latestPacket['bno_gyro']}"),
+          //     Text("BNO Accel: ${latestPacket['bno_accel']}"),
+          //     Text("BMI Gyro: ${latestPacket['bmi_gyro']}"),
+          //   ] else
+          //     Text("Waiting for packet..."),
+          // ],
+        ],
         ),
       ),
     );
   }
 
-
   Widget _buildCameraView() {
-  return Container(
-    width: 299,
-    height: 475,
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Color(0xFF397AC5), width: 4), // ✅ Blue Border
-    ),
-    child: _cameraController != null && _cameraController!.value.isInitialized
-        ? ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: CameraPreview(_cameraController!),
-          )
-        : Center(child: CircularProgressIndicator()),
-  );
-}
+    return Container(
+      width: 475, // flipped width and height
+      height: 299,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Color(0xFF397AC5), width: 4),
+      ),
+      child: _cameraController != null && _cameraController!.value.isInitialized
+          ? ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Transform.rotate(
+          angle: -90 * 3.1416 / 180, // rotate the preview to landscape left
+          child: CameraPreview(_cameraController!),
+        ),
+      )
+          : Center(child: CircularProgressIndicator()),
+    );
+  }
 
 
   Widget _buildEndTrainingButton() {
     return GestureDetector(
-      // Inside _buildEndTrainingButton()
       onTap: () async {
         await widget.bleService.disconnect();
         final String? savedVideoPath = await _stopRecording();
-
         if (savedVideoPath != null) {
-          // Start uploadTrainingSession but don't await it
           final Future<void> uploadFuture = uploadTrainingSession(
             videoFile: File(savedVideoPath),
             imuPackets: decodedMatrices,
             handedness: widget.selectedArm.toLowerCase(),
             videoStartTime: video_start_time!,
           );
-
-
-          // Pass the uploadFuture to SessionComplete
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -323,8 +334,6 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
           );
         }
       },
-
-
       child: Container(
         width: 200,
         height: 50,
@@ -347,7 +356,6 @@ class _TrainingInProgressState extends State<TrainingInProgress> {
       ),
     );
   }
-
 
   Widget _buildIconButton() {
     return Icon(Icons.sports_basketball, color: Colors.white);
