@@ -119,25 +119,39 @@ Future<void> _lockOrientationToLandscape() async {
  Future<void> _initializeCamera() async {
   cameras = await availableCameras();
   
-  // Get the back camera
-  final backCamera = cameras!.firstWhere(
-    (camera) => camera.lensDirection == CameraLensDirection.back,
-    orElse: () => cameras!.first
-  );
+  // Use the ultra-wide lens if available (0.6x)
+  CameraDescription selectedCamera;
+  try {
+    // First try to find an ultra-wide lens
+    selectedCamera = cameras!.firstWhere(
+      (camera) => 
+          camera.lensDirection == CameraLensDirection.back && 
+          camera.sensorOrientation == 270,  // Ultra-wide often has this orientation
+      orElse: () => cameras!.firstWhere(
+        (camera) => camera.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras!.first
+      )
+    );
+  } catch (e) {
+    // Fallback to the first back camera
+    selectedCamera = cameras!.firstWhere(
+      (camera) => camera.lensDirection == CameraLensDirection.back,
+      orElse: () => cameras!.first
+    );
+  }
   
   _cameraController = CameraController(
-    backCamera,
-    ResolutionPreset.medium,
+    selectedCamera,
+    ResolutionPreset.medium,  // Use medium resolution for better performance
     enableAudio: true,
     imageFormatGroup: ImageFormatGroup.jpeg,
   );
   
   await _cameraController!.initialize();
 
-  // Set video start time here
+  // Set video start time
   video_start_time = DateTime.now().millisecondsSinceEpoch / 1000.0;
 
-  // Don't lock orientation here - we'll handle rotation in the UI
   if (mounted) {
     setState(() {});
   }
@@ -145,6 +159,7 @@ Future<void> _lockOrientationToLandscape() async {
   // Start recording
   _startRecording();
 }
+
 
   void _startTimer() {
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
@@ -218,44 +233,39 @@ Future<void> _startRecording() async {
     return null;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          color: const Color(0xFF66B9FE),
-          image: const DecorationImage(
-            image: AssetImage('assets/balls_background.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Column(
-          children: [
-            _buildAppBar(),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: _buildTrainingCard(),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
+ @override
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFF66B9FE),
+        image: const DecorationImage(
+          image: AssetImage('assets/balls_background.png'),
+          fit: BoxFit.cover,
         ),
       ),
-    );
-  }
+      child: Column(
+        children: [
+          _buildAppBar(),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Column(
+                children: [
+                  _buildDebugPanel(),
+                  Expanded(child: _buildCameraView()),
+                  _buildEndTrainingButton(),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
   Widget _buildAppBar() {
     return Container(
@@ -333,8 +343,6 @@ Future<void> _startRecording() async {
   Widget _buildCameraView() {
   if (_cameraController == null || !_cameraController!.value.isInitialized) {
     return Container(
-      width: double.infinity,
-      height: 250,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Color(0xFF397AC5), width: 4),
@@ -343,36 +351,35 @@ Future<void> _startRecording() async {
     );
   }
 
-  // Get screen size
-  final size = MediaQuery.of(context).size;
+  // Get the available screen space (accounting for other UI elements)
+  final screenSize = MediaQuery.of(context).size;
   
-  // Calculate the rotation needed based on device orientation
-  // This is the key to fixing the upside-down issue
-  final deviceOrientation = MediaQuery.of(context).orientation;
-  final isLandscape = deviceOrientation == Orientation.landscape;
+  // Calculate the size of the camera preview to maintain aspect ratio
+  // and fit within the available space
+  final double aspectRatio = _cameraController!.value.aspectRatio;
   
-  // For most devices in landscape mode
-  final rotationAngle = isLandscape ? 0.0 : -math.pi / 2;
+  // For landscape mode, we want to maximize the width while keeping the aspect ratio
+  double previewWidth = screenSize.width - 48; // Account for horizontal padding
+  double previewHeight = previewWidth / aspectRatio;
   
-  // Calculate container dimensions for proper aspect ratio
-  final containerWidth = size.width - 48; // Account for padding
-  final containerHeight = isLandscape 
-      ? containerWidth / (16/9) // Use 16:9 aspect ratio for landscape
-      : containerWidth * (16/9);
+  // If the calculated height is too tall for the screen, adjust it
+  final double maxHeight = screenSize.height - 180; // Allow space for app bar, debug panel and button
+  if (previewHeight > maxHeight) {
+    previewHeight = maxHeight;
+    previewWidth = previewHeight * aspectRatio;
+  }
   
   return Container(
-    width: containerWidth,
-    height: containerHeight,
+    width: previewWidth,
+    height: previewHeight,
+    margin: EdgeInsets.symmetric(vertical: 12),
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(12),
       border: Border.all(color: Color(0xFF397AC5), width: 4),
     ),
     child: ClipRRect(
       borderRadius: BorderRadius.circular(8),
-      child: Transform.rotate(
-        angle: rotationAngle,
-        child: CameraPreview(_cameraController!),
-      ),
+      child: CameraPreview(_cameraController!),
     ),
   );
 }
