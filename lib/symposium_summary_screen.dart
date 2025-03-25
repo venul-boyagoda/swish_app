@@ -149,6 +149,28 @@ class SymposiumSummaryScreen extends StatelessWidget {
   }
 
   Widget _buildSummaryFrame(BuildContext context) {
+    bool hasNull = latestShot == null ||
+        latestShot!.release_angle == null ||
+        latestShot!.elbow_follow == null ||
+        latestShot!.elbow_set == null ||
+        latestShot!.knee_set == null ||
+        ImuData.shoulder_set == null ||
+        ImuData.follow_accel == null;
+
+    ShotData? shot;
+
+    if (!hasNull) {
+      shot = ShotData(
+        success: true,
+        release_angle: latestShot!.release_angle!,
+        elbow_follow: latestShot!.elbow_follow!,
+        elbow_set: latestShot!.elbow_set!,
+        knee_set: latestShot!.knee_set!,
+        shoulder_set: ImuData.shoulder_set!,
+        follow_accel: ImuData.follow_accel!,
+      );
+    }
+
     return Center(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
@@ -169,6 +191,7 @@ class SymposiumSummaryScreen extends StatelessWidget {
             _buildShotScore(context),
             const SizedBox(height: 24),
             _buildVideoReplaySection(context),
+            _buildFeedbackTable(shot),
           ],
         ),
       ),
@@ -273,6 +296,174 @@ class SymposiumSummaryScreen extends StatelessWidget {
       ],
     );
   }
+
+  Map<String, double> calculatePenalties(ShotData shot) {
+    return {
+      'release_angle': ((shot.release_angle - SummaryScoreCalculator.idealReleaseAngle).abs() / SummaryScoreCalculator.idealReleaseAngle) * SummaryScoreCalculator.releaseAngleSubWeight * SummaryScoreCalculator.accuracyWeight * 100,
+      'elbow_follow': ((shot.elbow_follow - SummaryScoreCalculator.idealElbowFollow).abs() / SummaryScoreCalculator.idealElbowFollow) * SummaryScoreCalculator.elbowFollowWeight * SummaryScoreCalculator.formWeight * 100,
+      'elbow_set': ((shot.elbow_set - SummaryScoreCalculator.idealElbowSet).abs() / SummaryScoreCalculator.idealElbowSet) * SummaryScoreCalculator.elbowSetWeight * SummaryScoreCalculator.formWeight * 100,
+      'knee_set': ((shot.knee_set - SummaryScoreCalculator.idealKneeSet).abs() / SummaryScoreCalculator.idealKneeSet) * SummaryScoreCalculator.kneeSetWeight * SummaryScoreCalculator.formWeight * 100,
+      'shoulder_set': ((shot.shoulder_set - SummaryScoreCalculator.idealShoulderSet).abs() / SummaryScoreCalculator.idealShoulderSet) * SummaryScoreCalculator.shoulderSetWeight * SummaryScoreCalculator.formWeight * 100,
+      'follow_accel': ((shot.follow_accel - SummaryScoreCalculator.idealFollowAccel).abs() / SummaryScoreCalculator.idealFollowAccel) * SummaryScoreCalculator.followAccelWeight * SummaryScoreCalculator.formWeight * 100,
+    };
+  }
+
+  static const Map<String, String> feedbackMessages = {
+    'release_angle': 'Work on adjusting your release angle for consistency.',
+    'elbow_follow': 'Focus on extending your arm smoothly during follow-through.',
+    'elbow_set': 'Work on improving your elbow set angle before the shot.',
+    'knee_set': 'Adjust your knee bend during the shot preparation.',
+    'shoulder_set': 'Focus on stabilizing your shoulder angle when setting up.',
+    'follow_accel': 'Adjust the acceleration of your wrist for better control.',
+  };
+
+  Widget _buildFeedbackTable(ShotData? shot) {
+    if (shot == null) {
+      final List<Map<String, String>> defaultFeedback = [
+        {
+          'condition': 'Shoulder Angle is too low (too tucked)',
+          'focus': 'Try to keep your elbow at a 90° angle',
+        },
+        {
+          'condition': 'Shoulder Angle is too high (flairs out)',
+          'focus': 'Tuck your elbow in while shooting, try to keep it at a 90° angle',
+        },
+        {
+          'condition': 'Acceleration of Wrist is too low',
+          'focus': 'Try to put more force in your shot',
+        },
+        {
+          'condition': 'Acceleration of Wrist is too high',
+          'focus': 'Try to put less force in your shot',
+        },
+        {
+          'condition': 'Release Angle is too low',
+          'focus': 'Try aiming higher, focus on a certain point on the rim as a reference for each shot',
+        },
+        {
+          'condition': 'Release Angle is too high',
+          'focus': 'Try aiming lower, focus on a certain point on the rim as a reference for each shot',
+        },
+        {
+          'condition': 'Set Elbow is too low',
+          'focus': 'Try to not bring the ball so close to your head when raising your arm to shoot',
+        },
+        {
+          'condition': 'Set Elbow is too high',
+          'focus': 'Try to bring the ball closer to your head when raising your arm to shoot',
+        },
+        {
+          'condition': 'Follow Through Elbow is too low',
+          'focus': 'Try extending your arm in a straight line',
+        },
+        {
+          'condition': 'Follow Through Elbow is too high',
+          'focus': 'Try extending your arm in a straight line',
+        },
+        {
+          'condition': 'Set Knee is too low',
+          'focus': 'Try bending your knees less',
+        },
+        {
+          'condition': 'Set Knee is too high',
+          'focus': 'Try bending your knees more',
+        },
+      ];
+
+      defaultFeedback.shuffle(); // Randomize the list
+
+      final fallbackFeedback = defaultFeedback.take(3).toList();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 24),
+          const Text(
+            'Top 3 Feedback Points:',
+            style: TextStyle(
+              color: Color(0xFF397AC5),
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...fallbackFeedback.map((item) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        item['condition']!,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.only(left: 28),
+                  child: Text(
+                    item['focus']!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )),
+        ],
+      );
+    }
+
+    // Normal path when we have valid shot data
+    final penalties = calculatePenalties(shot);
+    final top3 = penalties.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final topPenalties = top3.take(3).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        const Text(
+          'Top 3 Feedback Points:',
+          style: TextStyle(
+            color: Color(0xFF397AC5),
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...topPenalties.map((entry) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.warning, color: Colors.red, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${feedbackMessages[entry.key]}',
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        )),
+      ],
+    );
+  }
+
+
 
   void _showScorePopup(BuildContext context) {
     showDialog(

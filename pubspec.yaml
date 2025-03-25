@@ -44,7 +44,6 @@ dependencies:
   image: ^4.3.0
   google_mlkit_pose_detection: ^0.13.0
   image_picker: ^1.1.2
-  tflite_flutter: ^0.11.0
   percent_indicator: ^4.2.4
   video_player: ^2.9.3
 
@@ -64,7 +63,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
