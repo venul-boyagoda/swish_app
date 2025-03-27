@@ -5,9 +5,11 @@ class BleService {
   final String deviceId = "ED:C5:81:ED:70:84"; // Your actual MAC address
   final Guid imuServiceUuid = Guid("12345678-1234-5678-1234-123456789abc");
   final Guid imuCharacteristicUuid = Guid("87654321-4321-6789-4321-cba987654321");
+  final Guid timeSyncCharacteristicUuid = Guid("44444444-4444-4444-4444-444444444444");
 
   BluetoothDevice? _device;
   BluetoothCharacteristic? _imuCharacteristic;
+  BluetoothCharacteristic? _timeSyncCharacteristic; // holds the time sync handle
   StreamSubscription<BluetoothConnectionState>? _connectionSub;
   StreamController<List<int>> _imuDataController = StreamController.broadcast();
 
@@ -84,6 +86,11 @@ class BleService {
       }
     });
 
+    _timeSyncCharacteristic = imuService.characteristics.firstWhere(
+      (c) => c.characteristicUuid == timeSyncCharacteristicUuid && c.properties.write,
+      orElse: () => throw Exception("Time Sync Characteristic not found or not writable"),
+    );
+
     _isConnected = true;
   }
 
@@ -98,7 +105,32 @@ class BleService {
         _isConnected = true;
         print("🟢 Device connected");
       }
+
+      // Send time sync packet after connection
+      int t0 = DateTime.now().millisecondsSinceEpoch;
+      await sendTimeSyncPacket(t0);
     });
+  }
+
+  Future<void> sendTimeSyncPacket(int t0) async {
+    if (_timeSyncCharacteristic == null) {
+      print("⚠️ Time Sync Characteristic not available");
+      return;
+    }
+
+    // Get phone's current Unix time in milliseconds
+    int phoneTime = DateTime.now().millisecondsSinceEpoch;
+
+    // Prepare 16-byte packet (8 bytes for phone_time, 8 bytes for echoed t0)
+    List<int> packet = Uint8List(16);
+    ByteData.view(packet.buffer)
+      ..setUint64(0, phoneTime, Endian.little)
+      ..setUint64(8, t0, Endian.little);
+
+    // Write time sync packet to Thingy:53
+    print("📡 Sending time sync packet...");
+    await _timeSyncCharacteristic!.write(packet, withoutResponse: false);
+    print("✅ Time sync packet sent successfully!");
   }
 
   Future<void> disconnect() async {
