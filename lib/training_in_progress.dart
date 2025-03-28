@@ -15,8 +15,9 @@ import 'dart:convert'; // Ensure json encoding is available
 class TrainingInProgress extends StatefulWidget {
   final BleService bleService;
   final String selectedArm;
+  final double heightInCm;
 
-  TrainingInProgress({required this.bleService, required this.selectedArm});
+  TrainingInProgress({required this.bleService, required this.heightInCm, required this.selectedArm});
 
   @override
   _TrainingInProgressState createState() => _TrainingInProgressState();
@@ -225,18 +226,18 @@ class _TrainingInProgressState extends State<TrainingInProgress> with WidgetsBin
     // Create a deep copy of the IMU data to avoid any potential issues
     final List<Map<String, dynamic>> imuDataCopy = List.from(decodedMatrices);
 
-    // Call the upload function with all required parameters
+    // ✅ Add height to uploadTrainingSession
     final Future<void> uploadFuture = uploadTrainingSession(
       videoFile: File(videoPath),
       imuPackets: imuDataCopy,
       handedness: widget.selectedArm.toLowerCase(),
       videoStartTime: videoStartTime,
+      userHeightInCm: widget.heightInCm, // ✅ Pass the user's height
     );
 
     // Add error handling for the upload
     uploadFuture.catchError((error) {
       print("Error uploading training session: $error");
-      // You could show an error dialog here if desired
     });
 
     Navigator.pushReplacement(
@@ -249,6 +250,7 @@ class _TrainingInProgressState extends State<TrainingInProgress> with WidgetsBin
       ),
     );
   }
+
 
   @override
   void dispose() {

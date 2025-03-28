@@ -9,6 +9,7 @@ ShotData? latestShot;
 Future<void> uploadTrainingSession({
   required File videoFile,
   required List<Map<String, dynamic>> imuPackets,
+  required double height,
   required String handedness,
   required double videoStartTime,
 }) async {
@@ -22,6 +23,8 @@ Future<void> uploadTrainingSession({
 
   // Add handedness as a form field
   request.fields['handedness'] = handedness;
+
+  request.fields['height'] = height.toString();
 
   // Add IMU data as JSON stringified form field
   request.fields['imu_data'] = jsonEncode(imuPackets);
@@ -40,7 +43,7 @@ Future<void> uploadTrainingSession({
       ImuData.fromJson(jsonResponse);
 
       print("Shot Made: ${latestShot!.success}");
-      print("Follow Accel: ${ImuData.follow_accel}");
+      print("Follow Accel: ${ImuData.power}");
     } else {
       print("Error uploading session: ${response.statusCode}");
     }

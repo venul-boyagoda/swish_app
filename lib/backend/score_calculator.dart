@@ -4,19 +4,19 @@ import 'dart:math';
 class SummaryScoreCalculator {
   // Ideal values
   static const double idealReleaseAngle = 50.9;
-  static const double idealElbowFollow = 175.2;
+  static const double idealElbowFollow = 191.2;
   static const double idealElbowSet = 81.2;
   static const double idealKneeSet = 133.0;
-  static const double idealShoulderSet = 10.0;
-  static const double idealFollowAccel = 15.0;
+  static const double idealElbowFlare = 10.0;
+  static const double idealPower = 15.0;
 
   // Weights (form dominates, accuracy still matters slightly)
-  static const double accuracyWeight = 0.2;
-  static const double formWeight = 0.8;
+  static const double accuracyWeight = 0.35;
+  static const double formWeight = 0.65;
 
   // Accuracy breakdown
-  static const double successSubWeight = 0.05; // 25% of 20%
-  static const double releaseAngleSubWeight = 0.15; // 75% of 20%
+  static const double successSubWeight = 0.50; // 25% of 20%
+  static const double releaseAngleSubWeight = 0.50; // 75% of 20%
 
   // Form breakdown
   static const double elbowFollowWeight = 0.35;
@@ -58,7 +58,7 @@ class SummaryScoreCalculator {
     formScore += _scoreComponent(
       value: shot.elbow_set,
       ideal: idealElbowSet,
-      tolerance: 20,
+      tolerance: 30,
     ) * elbowSetWeight;
     formScore += _scoreComponent(
       value: shot.knee_set,
@@ -66,14 +66,14 @@ class SummaryScoreCalculator {
       tolerance: 20,
     ) * kneeSetWeight;
     formScore += _scoreComponent(
-      value: shot.shoulder_set,
-      ideal: idealShoulderSet,
-      tolerance: 8, // tighter tolerance
+      value: shot.elbow_flare,
+      ideal: idealElbowFlare,
+      tolerance: 25, // tighter tolerance
     ) * shoulderSetWeight;
     formScore += _scoreComponent(
-      value: shot.follow_accel,
-      ideal: idealFollowAccel,
-      tolerance: 5,
+      value: shot.power,
+      ideal: idealPower,
+      tolerance: 15,
     ) * followAccelWeight;
 
     final totalScore =

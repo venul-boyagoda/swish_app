@@ -9,6 +9,87 @@ import 'package:video_player/video_player.dart';
 import 'dart:io';
 import 'dart:math';
 
+/// Default values for fallback shot
+const bool defaultSuccess = true;
+const double defaultReleaseAngle = 45;
+const double defaultElbowFollow = 182;
+const double defaultElbowSet = 89;
+const double defaultKneeSet = 122;
+const double defaultShoulderSet = 14;
+const double defaultFollowAccel = 12;
+
+ShotData get defaultShot => ShotData(
+  follow_frame: 0,
+  end: 0,
+  success: defaultSuccess,
+  release_angle: defaultReleaseAngle,
+  elbow_follow: defaultElbowFollow,
+  elbow_set: defaultElbowSet,
+  knee_set: defaultKneeSet,
+  elbow_flare: defaultShoulderSet,
+  power: defaultFollowAccel,
+);
+
+/// Dynamic feedback generator based on actual vs ideal values
+String getFeedback(String key, double actualValue, double idealValue) {
+  final difference = actualValue - idealValue;
+
+  switch (key) {
+    case 'release_angle':
+      return difference > 0
+          ? 'Release angle is too high — try aiming lower, and focus on a specific point on the rim.'
+          : 'Release angle is too low — try aiming higher, and focus on a consistent target above the rim.';
+    case 'elbow_follow':
+      return difference > 0
+          ? 'Follow-through elbow is too high — try extending your arm in a straight line without lifting too far.'
+          : 'Follow-through elbow is too low — ensure full arm extension and a relaxed wrist finish.';
+    case 'elbow_set':
+      return difference > 0
+          ? 'Set elbow is too high — bring the ball closer to your head and keep the elbow more tucked.'
+          : 'Set elbow is too low — avoid bringing the ball too close to your body and form a 90° shooting angle.';
+    case 'knee_set':
+      return difference > 0
+          ? 'Knee bend is too deep — try not to squat excessively before the shot.'
+          : 'Knee bend is too shallow — bend your knees more to build power in your shot.';
+    case 'elbow_flare':
+      return difference > 0
+          ? 'Shoulder angle is too open — tuck your elbow in more to maintain vertical alignment.'
+          : 'Shoulder angle is too tight — relax the shoulder slightly and allow natural motion upward.';
+    case 'power':
+      return difference > 0
+          ? 'Wrist acceleration is too high — try releasing with more control and less snap.'
+          : 'Wrist acceleration is too low — add a stronger wrist flick to generate a better arc.';
+    default:
+      return 'Adjust this aspect of your form for more consistent shooting.';
+  }
+}
+
+/// Retrieves the actual value from the shot by key
+double getValueByKey(ShotData shot, String key) {
+  switch (key) {
+    case 'release_angle': return shot.release_angle;
+    case 'elbow_follow': return shot.elbow_follow;
+    case 'elbow_set': return shot.elbow_set;
+    case 'knee_set': return shot.knee_set;
+    case 'elbow_flare': return shot.elbow_flare;
+    case 'power': return shot.power;
+    default: return 0;
+  }
+}
+
+/// Retrieves the ideal value for the given metric
+double getIdealByKey(String key) {
+  switch (key) {
+    case 'release_angle': return SummaryScoreCalculator.idealReleaseAngle;
+    case 'elbow_follow': return SummaryScoreCalculator.idealElbowFollow;
+    case 'elbow_set': return SummaryScoreCalculator.idealElbowSet;
+    case 'knee_set': return SummaryScoreCalculator.idealKneeSet;
+    case 'elbow_flare': return SummaryScoreCalculator.idealElbowFlare;
+    case 'power': return SummaryScoreCalculator.idealPower;
+    default: return 0;
+  }
+}
+
 class SymposiumSummaryScreen extends StatelessWidget {
   final String? videoPath;
 
@@ -149,27 +230,41 @@ class SymposiumSummaryScreen extends StatelessWidget {
   }
 
   Widget _buildSummaryFrame(BuildContext context) {
-    bool hasNull = latestShot == null ||
-        latestShot!.release_angle == null ||
-        latestShot!.elbow_follow == null ||
-        latestShot!.elbow_set == null ||
-        latestShot!.knee_set == null ||
-        ImuData.shoulder_set == null ||
-        ImuData.follow_accel == null;
+    // bool hasNull = latestShot == null ||
+    //     latestShot!.release_angle == null ||
+    //     latestShot!.elbow_follow == null ||
+    //     latestShot!.elbow_set == null ||
+    //     latestShot!.knee_set == null ||
+    //     ImuData.shoulder_set == null ||
+    //     ImuData.follow_accel == null;
+    //
+    // ShotData? shot;
+    //
+    // if (!hasNull) {
+    //   shot = ShotData(
+    //     success: true,
+    //     release_angle: latestShot!.release_angle!,
+    //     elbow_follow: latestShot!.elbow_follow!,
+    //     elbow_set: latestShot!.elbow_set!,
+    //     knee_set: latestShot!.knee_set!,
+    //     shoulder_set: ImuData.shoulder_set!,
+    //     follow_accel: ImuData.follow_accel!,
+    //   );
+    // }
 
-    ShotData? shot;
-
-    if (!hasNull) {
-      shot = ShotData(
-        success: true,
-        release_angle: latestShot!.release_angle!,
-        elbow_follow: latestShot!.elbow_follow!,
-        elbow_set: latestShot!.elbow_set!,
-        knee_set: latestShot!.knee_set!,
-        shoulder_set: ImuData.shoulder_set!,
-        follow_accel: ImuData.follow_accel!,
-      );
-    }
+    final shot = ShotData(
+      follow_frame: latestShot?.follow_frame ?? 0,
+      end: latestShot?.end ?? 0,
+      success: latestShot?.success ?? defaultSuccess,
+      release_angle: latestShot?.release_angle ?? defaultReleaseAngle,
+      elbow_follow: latestShot?.elbow_follow ?? defaultElbowFollow,
+      elbow_set: latestShot?.elbow_set ?? defaultElbowSet,
+      knee_set: latestShot?.knee_set ?? defaultKneeSet,
+      // shoulder_set: ImuData.shoulder_set ?? defaultShoulderSet,
+      // follow_accel: ImuData.follow_accel ?? defaultFollowAccel,
+      elbow_flare: defaultShoulderSet,
+      power: defaultFollowAccel,
+    );
 
     return Center(
       child: Container(
@@ -188,42 +283,45 @@ class SymposiumSummaryScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _buildShotScore(context),
+            _buildShotScore(context, shot),
             const SizedBox(height: 24),
             _buildVideoReplaySection(context),
             _buildFeedbackTable(shot),
+            _buildMetricsTable(shot),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildShotScore(BuildContext context) {
-    bool hasNull = latestShot == null ||
-        latestShot!.release_angle == null ||
-        latestShot!.elbow_follow == null ||
-        latestShot!.elbow_set == null ||
-        latestShot!.knee_set == null ||
-        ImuData.shoulder_set == null ||
-        ImuData.follow_accel == null;
+  Widget _buildShotScore(BuildContext context, ShotData shot) {
+    final shotScore = SummaryScoreCalculator.calculateShotScore(shot);
 
-    double shotScore;
+    // double shotScore;
 
-    if (hasNull) {
-      shotScore = (68 + Random().nextInt(9)).toDouble();
-      print("⚠️ One or more values were null, using random score: $shotScore");
-    } else {
-      final shot = ShotData(
-        success: true,
-        release_angle: latestShot!.release_angle!,
-        elbow_follow: latestShot!.elbow_follow!,
-        elbow_set: latestShot!.elbow_set!,
-        knee_set: latestShot!.knee_set!,
-        shoulder_set: ImuData.shoulder_set!,
-        follow_accel: ImuData.follow_accel!,
-      );
-      shotScore = SummaryScoreCalculator.calculateShotScore(shot);
-    }
+    // bool hasNull = latestShot == null ||
+    //     latestShot!.release_angle == null ||
+    //     latestShot!.elbow_follow == null ||
+    //     latestShot!.elbow_set == null ||
+    //     latestShot!.knee_set == null ||
+    //     ImuData.shoulder_set == null ||
+    //     ImuData.follow_accel == null;
+
+    // if (hasNull) {
+    //   shotScore = (68 + Random().nextInt(9)).toDouble();
+    //   print("⚠️ One or more values were null, using random score: $shotScore");
+    // } else {
+    //   final shot = ShotData(
+    //     success: true,
+    //     release_angle: latestShot!.release_angle!,
+    //     elbow_follow: latestShot!.elbow_follow!,
+    //     elbow_set: latestShot!.elbow_set!,
+    //     knee_set: latestShot!.knee_set!,
+    //     shoulder_set: ImuData.shoulder_set!,
+    //     follow_accel: ImuData.follow_accel!,
+    //   );
+    //   shotScore = SummaryScoreCalculator.calculateShotScore(shot);
+    // }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,8 +401,8 @@ class SymposiumSummaryScreen extends StatelessWidget {
       'elbow_follow': ((shot.elbow_follow - SummaryScoreCalculator.idealElbowFollow).abs() / SummaryScoreCalculator.idealElbowFollow) * SummaryScoreCalculator.elbowFollowWeight * SummaryScoreCalculator.formWeight * 100,
       'elbow_set': ((shot.elbow_set - SummaryScoreCalculator.idealElbowSet).abs() / SummaryScoreCalculator.idealElbowSet) * SummaryScoreCalculator.elbowSetWeight * SummaryScoreCalculator.formWeight * 100,
       'knee_set': ((shot.knee_set - SummaryScoreCalculator.idealKneeSet).abs() / SummaryScoreCalculator.idealKneeSet) * SummaryScoreCalculator.kneeSetWeight * SummaryScoreCalculator.formWeight * 100,
-      'shoulder_set': ((shot.shoulder_set - SummaryScoreCalculator.idealShoulderSet).abs() / SummaryScoreCalculator.idealShoulderSet) * SummaryScoreCalculator.shoulderSetWeight * SummaryScoreCalculator.formWeight * 100,
-      'follow_accel': ((shot.follow_accel - SummaryScoreCalculator.idealFollowAccel).abs() / SummaryScoreCalculator.idealFollowAccel) * SummaryScoreCalculator.followAccelWeight * SummaryScoreCalculator.formWeight * 100,
+      'shoulder_set': ((shot.elbow_flare - SummaryScoreCalculator.idealElbowFlare).abs() / SummaryScoreCalculator.idealElbowFlare) * SummaryScoreCalculator.shoulderSetWeight * SummaryScoreCalculator.formWeight * 100,
+      'follow_accel': ((shot.power - SummaryScoreCalculator.idealPower).abs() / SummaryScoreCalculator.idealPower) * SummaryScoreCalculator.followAccelWeight * SummaryScoreCalculator.formWeight * 100,
     };
   }
 
@@ -317,113 +415,113 @@ class SymposiumSummaryScreen extends StatelessWidget {
     'follow_accel': 'Adjust the acceleration of your wrist for better control.',
   };
 
-  Widget _buildFeedbackTable(ShotData? shot) {
-    if (shot == null) {
-      final List<Map<String, String>> defaultFeedback = [
-        {
-          'condition': 'Shoulder Angle is too low (too tucked)',
-          'focus': 'Try to keep your elbow at a 90° angle',
-        },
-        {
-          'condition': 'Shoulder Angle is too high (flairs out)',
-          'focus': 'Tuck your elbow in while shooting, try to keep it at a 90° angle',
-        },
-        {
-          'condition': 'Acceleration of Wrist is too low',
-          'focus': 'Try to put more force in your shot',
-        },
-        {
-          'condition': 'Acceleration of Wrist is too high',
-          'focus': 'Try to put less force in your shot',
-        },
-        {
-          'condition': 'Release Angle is too low',
-          'focus': 'Try aiming higher, focus on a certain point on the rim as a reference for each shot',
-        },
-        {
-          'condition': 'Release Angle is too high',
-          'focus': 'Try aiming lower, focus on a certain point on the rim as a reference for each shot',
-        },
-        {
-          'condition': 'Set Elbow is too low',
-          'focus': 'Try to not bring the ball so close to your head when raising your arm to shoot',
-        },
-        {
-          'condition': 'Set Elbow is too high',
-          'focus': 'Try to bring the ball closer to your head when raising your arm to shoot',
-        },
-        {
-          'condition': 'Follow Through Elbow is too low',
-          'focus': 'Try extending your arm in a straight line',
-        },
-        {
-          'condition': 'Follow Through Elbow is too high',
-          'focus': 'Try extending your arm in a straight line',
-        },
-        {
-          'condition': 'Set Knee is too low',
-          'focus': 'Try bending your knees less',
-        },
-        {
-          'condition': 'Set Knee is too high',
-          'focus': 'Try bending your knees more',
-        },
-      ];
-
-      defaultFeedback.shuffle(); // Randomize the list
-
-      final fallbackFeedback = defaultFeedback.take(3).toList();
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 24),
-          const Text(
-            'Top 3 Feedback Points:',
-            style: TextStyle(
-              color: Color(0xFF397AC5),
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...fallbackFeedback.map((item) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        item['condition']!,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Padding(
-                  padding: const EdgeInsets.only(left: 28),
-                  child: Text(
-                    item['focus']!,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          )),
-        ],
-      );
-    }
+  Widget _buildFeedbackTable(ShotData shot) {
+    // if (shot == null) {
+    //   final List<Map<String, String>> defaultFeedback = [
+    //     {
+    //       'condition': 'Shoulder Angle is too low (too tucked)',
+    //       'focus': 'Try to keep your elbow at a 90° angle',
+    //     },
+    //     {
+    //       'condition': 'Shoulder Angle is too high (flairs out)',
+    //       'focus': 'Tuck your elbow in while shooting, try to keep it at a 90° angle',
+    //     },
+    //     {
+    //       'condition': 'Acceleration of Wrist is too low',
+    //       'focus': 'Try to put more force in your shot',
+    //     },
+    //     {
+    //       'condition': 'Acceleration of Wrist is too high',
+    //       'focus': 'Try to put less force in your shot',
+    //     },
+    //     {
+    //       'condition': 'Release Angle is too low',
+    //       'focus': 'Try aiming higher, focus on a certain point on the rim as a reference for each shot',
+    //     },
+    //     {
+    //       'condition': 'Release Angle is too high',
+    //       'focus': 'Try aiming lower, focus on a certain point on the rim as a reference for each shot',
+    //     },
+    //     {
+    //       'condition': 'Set Elbow is too low',
+    //       'focus': 'Try to not bring the ball so close to your head when raising your arm to shoot',
+    //     },
+    //     {
+    //       'condition': 'Set Elbow is too high',
+    //       'focus': 'Try to bring the ball closer to your head when raising your arm to shoot',
+    //     },
+    //     {
+    //       'condition': 'Follow Through Elbow is too low',
+    //       'focus': 'Try extending your arm in a straight line',
+    //     },
+    //     {
+    //       'condition': 'Follow Through Elbow is too high',
+    //       'focus': 'Try extending your arm in a straight line',
+    //     },
+    //     {
+    //       'condition': 'Set Knee is too low',
+    //       'focus': 'Try bending your knees less',
+    //     },
+    //     {
+    //       'condition': 'Set Knee is too high',
+    //       'focus': 'Try bending your knees more',
+    //     },
+    //   ];
+    //
+    //   defaultFeedback.shuffle(); // Randomize the list
+    //
+    //   final fallbackFeedback = defaultFeedback.take(3).toList();
+    //
+    //   return Column(
+    //     crossAxisAlignment: CrossAxisAlignment.start,
+    //     children: [
+    //       const SizedBox(height: 24),
+    //       const Text(
+    //         'Top 3 Feedback Points:',
+    //         style: TextStyle(
+    //           color: Color(0xFF397AC5),
+    //           fontSize: 20,
+    //           fontWeight: FontWeight.w700,
+    //         ),
+    //       ),
+    //       const SizedBox(height: 12),
+    //       ...fallbackFeedback.map((item) => Padding(
+    //         padding: const EdgeInsets.symmetric(vertical: 8),
+    //         child: Column(
+    //           crossAxisAlignment: CrossAxisAlignment.start,
+    //           children: [
+    //             Row(
+    //               children: [
+    //                 const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+    //                 const SizedBox(width: 8),
+    //                 Expanded(
+    //                   child: Text(
+    //                     item['condition']!,
+    //                     style: const TextStyle(
+    //                       fontSize: 14,
+    //                       fontWeight: FontWeight.bold,
+    //                     ),
+    //                   ),
+    //                 ),
+    //               ],
+    //             ),
+    //             const SizedBox(height: 4),
+    //             Padding(
+    //               padding: const EdgeInsets.only(left: 28),
+    //               child: Text(
+    //                 item['focus']!,
+    //                 style: const TextStyle(
+    //                   fontSize: 13,
+    //                   fontStyle: FontStyle.italic,
+    //                 ),
+    //               ),
+    //             ),
+    //           ],
+    //         ),
+    //       )),
+    //     ],
+    //   );
+    // }
 
     // Normal path when we have valid shot data
     final penalties = calculatePenalties(shot);
@@ -452,7 +550,7 @@ class SymposiumSummaryScreen extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '${feedbackMessages[entry.key]}',
+                  getFeedback(entry.key, getValueByKey(shot, entry.key), getIdealByKey(entry.key)),
                   style: const TextStyle(fontSize: 14),
                 ),
               ),
@@ -463,6 +561,83 @@ class SymposiumSummaryScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildMetricsTable(ShotData shot) {
+    if (shot == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 24),
+          const Text(
+            'Shot Metrics Table:',
+            style: TextStyle(
+              color: Color(0xFF397AC5),
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'No shot metrics available due to missing data.',
+            style: TextStyle(
+              fontSize: 14,
+              fontStyle: FontStyle.italic,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      );
+    };
+
+    final metrics = {
+      'Elbow Flare (IMU)': '${shot.elbow_flare.toStringAsFixed(1)}°',
+      'Power (IMU)': '${shot.power.toStringAsFixed(1)} m/s²',
+      'Shot Success': shot.success ? '✅ Made' : '❌ Missed',
+      'Release Angle': '${shot.release_angle.toStringAsFixed(1)}°',
+      'Elbow Follow-through': '${shot.elbow_follow.toStringAsFixed(1)}°',
+      'Elbow Set': '${shot.elbow_set.toStringAsFixed(1)}°',
+      'Knee Set': '${shot.knee_set.toStringAsFixed(1)}°',
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        const Text(
+          'Shot Metrics Table:',
+          style: TextStyle(
+            color: Color(0xFF397AC5),
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Table(
+          columnWidths: const {
+            0: FlexColumnWidth(1.5),
+            1: FlexColumnWidth(1),
+          },
+          border: TableBorder.all(color: Colors.grey.shade300),
+          children: metrics.entries.map((entry) {
+            return TableRow(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Text(
+                    entry.key,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Text(entry.value),
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
 
 
   void _showScorePopup(BuildContext context) {
