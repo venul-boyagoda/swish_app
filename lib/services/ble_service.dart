@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'dart:typed_data';
 
 class BleService {
   final String deviceId = "ED:C5:81:ED:70:84"; // Your actual MAC address
@@ -94,9 +95,9 @@ class BleService {
     _isConnected = true;
   }
 
-  void _setupConnectionListener(BluetoothDevice device) {
+  void _setupConnectionListener(BluetoothDevice device) async {
     _connectionSub?.cancel(); // clean old listener
-    _connectionSub = device.connectionState.listen((state) {
+    _connectionSub = device.connectionState.listen((state) async {
       print("🔄 Connection state: $state");
       if (state == BluetoothConnectionState.disconnected) {
         _isConnected = false;
@@ -122,7 +123,7 @@ class BleService {
     int phoneTime = DateTime.now().millisecondsSinceEpoch;
 
     // Prepare 16-byte packet (8 bytes for phone_time, 8 bytes for echoed t0)
-    List<int> packet = Uint8List(16);
+    Uint8List packet = Uint8List(16);
     ByteData.view(packet.buffer)
       ..setUint64(0, phoneTime, Endian.little)
       ..setUint64(8, t0, Endian.little);
